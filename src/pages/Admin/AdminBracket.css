@@ -1,0 +1,296 @@
+/* Admin VS-style match cards (admin panel) */
+
+.admin-vs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.admin-vs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  transition: border-color 0.18s ease, transform 0.18s ease;
+}
+
+.admin-vs:hover { border-color: var(--naranja); transform: translateY(-1px); }
+.admin-vs.is-live {
+  border-color: var(--naranja);
+  box-shadow: 0 0 0 1px rgba(255, 107, 33, 0.35);
+}
+.admin-vs.is-done { opacity: 0.95; }
+
+.admin-vs__row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 60px 52px 60px minmax(180px, 1fr);
+  align-items: stretch;
+  gap: 6px;
+}
+
+.admin-vs__name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 6px;
+  min-height: 56px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.admin-vs__badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+}
+
+/* Left side (mirrored per bracket side: izquierda/izquierda has first box light) */
+.admin-vs--izquierda .admin-vs__name--left {
+  background: #f3f4f4;
+  color: #0c1018;
+  border: 1px solid #d4d8dd;
+  justify-content: flex-end;
+}
+.admin-vs--izquierda .admin-vs__name--right {
+  background: #0d1219;
+  color: #fff;
+  border: 1px solid #2c3440;
+  justify-content: flex-start;
+}
+
+/* Right side of the bracket: opposite contrast */
+.admin-vs--derecha .admin-vs__name--left {
+  background: #0d1219;
+  color: #fff;
+  border: 1px solid #2c3440;
+  justify-content: flex-end;
+}
+.admin-vs--derecha .admin-vs__name--right {
+  background: #f3f4f4;
+  color: #0c1018;
+  border: 1px solid #d4d8dd;
+  justify-content: flex-start;
+}
+
+/* Final (center) */
+.admin-vs--final .admin-vs__name--left,
+.admin-vs--final .admin-vs__name--right {
+  background: #f3f4f4;
+  color: #0c1018;
+  border: 1px solid #d4d8dd;
+  justify-content: flex-start;
+}
+
+.admin-vs__name--empty {
+  background: transparent !important;
+  color: var(--texto-tenue);
+  font-style: italic;
+  font-weight: 400;
+  border: 1px dashed #4a5460 !important;
+}
+
+.admin-vs__placeholder {
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px dashed #4a5460;
+  flex-shrink: 0;
+}
+
+.admin-vs__team-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-vs__name.is-winner {
+  background: linear-gradient(135deg, #ff6b21 0%, #ff8a4d 100%) !important;
+  color: #fff !important;
+  border-color: var(--naranja) !important;
+  font-weight: 700;
+}
+
+.admin-vs__name.is-leading {
+  border-color: var(--verde) !important;
+  box-shadow: inset 0 0 0 1px var(--verde);
+}
+
+.admin-vs__name.is-loser {
+  opacity: 0.45;
+  text-decoration: line-through;
+}
+
+/* Score boxes */
+.admin-vs__score {
+  display: grid;
+  place-items: center;
+  font-family: Oswald, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  border-radius: 6px;
+  min-height: 56px;
+  letter-spacing: 0.5px;
+}
+
+.admin-vs--izquierda .admin-vs__score--left {
+  background: #0d1219;
+  color: #fff;
+  border: 1px solid #2c3440;
+}
+.admin-vs--izquierda .admin-vs__score--right {
+  background: #f3f4f4;
+  color: #0c1018;
+  border: 1px solid #d4d8dd;
+}
+.admin-vs--derecha .admin-vs__score--left {
+  background: #f3f4f4;
+  color: #0c1018;
+  border: 1px solid #d4d8dd;
+}
+.admin-vs--derecha .admin-vs__score--right {
+  background: #0d1219;
+  color: #fff;
+  border: 1px solid #2c3440;
+}
+.admin-vs--final .admin-vs__score {
+  background: #0d1219;
+  color: #fff;
+  border: 1px solid #2c3440;
+}
+
+.admin-vs__score.is-winner {
+  background: linear-gradient(135deg, #ff6b21 0%, #ff8a4d 100%) !important;
+  color: #fff !important;
+  border-color: var(--naranja) !important;
+}
+
+.admin-vs__score.is-leading {
+  border-color: var(--verde);
+  box-shadow: inset 0 0 0 1px var(--verde);
+  color: var(--verde) !important;
+}
+
+.admin-vs__score-input {
+  width: 100%;
+  height: 56px;
+  font-family: Oswald, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  background: #0a0e14;
+  border: 2px solid var(--naranja);
+  color: var(--naranja);
+  border-radius: 6px;
+  outline: none;
+  padding: 0;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.admin-vs__score-input::-webkit-outer-spin-button,
+.admin-vs__score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.admin-vs__score-input:focus { box-shadow: 0 0 0 2px rgba(255, 107, 33, 0.3); }
+
+/* VS label */
+.admin-vs__vs {
+  display: grid;
+  place-items: center;
+  font-family: Oswald, sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--texto-tenue);
+  letter-spacing: 1.5px;
+  user-select: none;
+}
+
+/* Footer */
+.admin-vs__foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--texto-tenue);
+}
+
+.admin-vs__round { font-weight: 700; color: var(--naranja); }
+.admin-vs__side { color: var(--texto-tenue); }
+
+.admin-vs__status.status-en_juego {
+  color: var(--naranja);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-vs__status.status-en_juego::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--naranja);
+  border-radius: 50%;
+  animation: admin-live-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes admin-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 107, 33, 0.18); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 107, 33, 0.05); }
+}
+
+.admin-vs__status.status-jugado { color: var(--verde); }
+.admin-vs__status.status-pendiente { color: var(--texto-tenue); }
+
+/* Finalizar / Reabrir buttons */
+.admin-vs__finalize {
+  background: var(--naranja);
+  color: #fff;
+  border: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+  margin-left: auto;
+}
+
+.admin-vs__finalize:hover {
+  background: var(--naranja-fuerte);
+  transform: translateY(-1px);
+}
+
+.admin-vs__reopen {
+  background: transparent;
+  color: var(--texto-tenue);
+  border: 1px solid var(--linea);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.admin-vs__reopen:hover { color: var(--naranja); border-color: var(--naranja); }

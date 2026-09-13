@@ -60,47 +60,63 @@ export default function Torneos() {
     return { total, played, live, pending: total - played - live }
   }, [matches])
 
-  async function handlePickWinner(matchId, winnerId) {
+  function teamName(list, id) {
+    return list.find((t) => t.id === id)?.name || 'El equipo'
+  }
+
+  // Persists score only — no winner logic until Finalizar is clicked.
+  async function handleScoreChange(matchId, field, value) {
     if (!isAdmin) {
-      toast('Solo el administrador puede registrar ganadores', 'err')
+      toast('Solo el administrador puede registrar puntajes', 'err')
+      return
+    }
+    const updated = matches.find((m) => m.id === matchId)
+    if (!updated) return
+    setMatches((prev) => prev.map((m) => (m.id === matchId ? { ...m, [field]: value } : m)))
+    const { error } = await supabase
+      .from('bracket_matches')
+      .update({ [field]: value })
+      .eq('id', matchId)
+    if (error) {
+      toast('No se pudo guardar el puntaje: ' + error.message, 'err')
+    }
+  }
+
+  // Admin clicks "Finalizar" → picks the team with higher score and propagates.
+  async function handleFinalize(matchId) {
+    if (!isAdmin) {
+      toast('Solo el administrador puede finalizar un cruce', 'err')
       return
     }
     const match = matches.find((m) => m.id === matchId)
-    if (!match || !winnerId) return
-
-    // 1) Persistir ganador y score del cruce actual
-    const loserId = match.team1_id === winnerId ? match.team2_id : match.team1_id
-    // Si el admin ya había ingresado puntajes reales, respetarlos. Si no, default 1–0.
-    const hasScore1 = match.team1_score !== null && match.team1_score !== undefined && match.team1_score !== ''
-    const hasScore2 = match.team2_score !== null && match.team2_score !== undefined && match.team2_score !== ''
-    let score1 = match.team1_id === winnerId ? 1 : 0
-    let score2 = match.team2_id === winnerId ? 1 : 0
-    if (hasScore1 && hasScore2) {
-      score1 = Number(match.team1_score)
-      score2 = Number(match.team2_score)
-      // Si los puntajes están empatados o invertidos, ajustar para que el ganador quede con el marcador mayor
-      if (score1 === score2) {
-        if (match.team1_id === winnerId) score1 = score2 + 1
-        else score2 = score1 + 1
-      } else {
-        // Si los puntajes no coinciden con el ganador elegido, corregirlos
-        const winnerIsTeam1 = match.team1_id === winnerId
-        const winnerScore = winnerIsTeam1 ? score1 : score2
-        const loserScore = winnerIsTeam1 ? score2 : score1
-        if (winnerScore <= loserScore) {
-          if (winnerIsTeam1) score1 = score2 + 1
-          else score2 = score1 + 1
-        }
-      }
+    if (!match) return
+    if (!match.team1_id || !match.team2_id) {
+      toast('Faltan equipos por definir en este cruce', 'err')
+      return
     }
+    const s1 = match.team1_score
+    const s2 = match.team2_score
+    if (s1 === null || s1 === undefined || s1 === '' || s2 === null || s2 === undefined || s2 === '') {
+      toast('Ingresa ambos puntajes antes de finalizar', 'err')
+      return
+    }
+    const n1 = Number(s1)
+    const n2 = Number(s2)
+    if (n1 === n2) {
+      toast('Hay un empate: ajusta los puntajes para definir un ganador', 'err')
+      return
+    }
+
+    const winnerId = n1 > n2 ? match.team1_id : match.team2_id
+    const loserId = n1 > n2 ? match.team2_id : match.team1_id
     const isFinal = match.round_name === 'Final'
 
-    // Optimistic local update so the UI feels instant
+    // Optimistic local update
     const next = isFinal ? null : computeNextSlot(matches, match)
     const nextMatch = next ? findMatch(matches, next.round_number, next.side, next.match_index) : null
     let optimistic = matches.map((m) =>
       m.id === matchId
-        ? { ...m, winner_id: winnerId, team1_score: score1, team2_score: score2, status: 'jugado' }
+        ? { ...m, winner_id: winnerId, status: 'jugado', team1_score: n1, team2_score: n2 }
         : m,
     )
     if (next && nextMatch) {
@@ -110,16 +126,17 @@ export default function Torneos() {
     }
     setMatches(optimistic)
 
+    // Persist current match
     const { error } = await supabase
       .from('bracket_matches')
-      .update({ winner_id: winnerId, team1_score: score1, team2_score: score2, status: 'jugado' })
+      .update({ winner_id: winnerId, status: 'jugado', team1_score: n1, team2_score: n2 })
       .eq('id', matchId)
     if (error) {
-      toast('No se pudo guardar el resultado: ' + error.message, 'err')
+      toast('No se pudo finalizar el cruce: ' + error.message, 'err')
       return
     }
 
-    // 2) Avanzar el ganador al siguiente slot (o coronarlo si es la Final)
+    // Propagate / crown
     if (isFinal) {
       await supabase.from('teams').update({ status: 'campeon' }).eq('id', winnerId)
       if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
@@ -135,128 +152,51 @@ export default function Torneos() {
       }
       await supabase.from('teams').update({ status: 'avanzo' }).eq('id', winnerId)
       if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
-      toast(`✅ ${teamName(teams, winnerId)} avanza a ${nextMatch.round_name}`, 'ok')
+      toast(`✅ ${teamName(teams, winnerId)} gana ${n1}–${n2} y avanza a ${nextMatch.round_name}`, 'ok')
     }
 
-    // 3) Refrescar desde Supabase para asegurar consistencia total
-    const [{ data: matchesRes }] = await Promise.all([
-      supabase.from('bracket_matches').select('*').eq('tournament_id', selectedId).order('round_number'),
-    ])
+    // Refetch for consistency
+    const { data: matchesRes } = await supabase
+      .from('bracket_matches')
+      .select('*')
+      .eq('tournament_id', selectedId)
+      .order('round_number')
     if (matchesRes) setMatches(matchesRes)
   }
 
-  function teamName(list, id) {
-    return list.find((t) => t.id === id)?.name || 'El equipo'
-  }
-
-  // Persists score and, if both scores are valid, auto-decides winner and propagates.
-  async function handleScoreChange(matchId, field, value) {
+  // Reopen a finalized match: clears winner, resets status, rolls back next slot.
+  async function handleReopen(matchId) {
     if (!isAdmin) {
-      toast('Solo el administrador puede registrar puntajes', 'err')
+      toast('Solo el administrador puede reabrir un cruce', 'err')
       return
     }
     const match = matches.find((m) => m.id === matchId)
     if (!match) return
-
-    const updated = { ...match, [field]: value }
-    // Optimistic local update
-    let nextState = matches.map((m) => (m.id === matchId ? updated : m))
-    setMatches(nextState)
-
-    const { error } = await supabase
+    const previousWinner = match.winner_id
+    await supabase
       .from('bracket_matches')
-      .update({ [field]: value })
+      .update({ winner_id: null, status: 'pendiente' })
       .eq('id', matchId)
-    if (error) {
-      toast('No se pudo guardar el puntaje: ' + error.message, 'err')
-      return
-    }
-
-    // If the current winner_id no longer matches the leading score, clear it.
-    const s1 = updated.team1_score
-    const s2 = updated.team2_score
-    const hasBoth = s1 !== null && s1 !== undefined && s1 !== '' && s2 !== null && s2 !== undefined && s2 !== ''
-    const numeric1 = hasBoth ? Number(s1) : null
-    const numeric2 = hasBoth ? Number(s2) : null
-
-    // Case: invalid (missing) score — clear winner + clear next slot
-    if (!hasBoth || numeric1 === numeric2 || !updated.team1_id || !updated.team2_id) {
-      if (updated.winner_id) {
-        await supabase.from('bracket_matches').update({ winner_id: null, status: 'pendiente' }).eq('id', matchId)
-        await supabase.from('teams').update({ status: null }).eq('id', updated.winner_id)
-        // Roll back the next slot that this match had filled
-        const back = computeNextSlot(matches, updated)
-        if (back) {
-          const backMatch = findMatch(matches, back.round_number, back.side, back.match_index)
-          if (backMatch && backMatch[back.slotField] === updated.winner_id) {
-            await supabase.from('bracket_matches').update({ [back.slotField]: null }).eq('id', backMatch.id)
-            if (backMatch.winner_id) await supabase.from('bracket_matches').update({ winner_id: null, status: 'pendiente' }).eq('id', backMatch.id)
+    if (previousWinner) {
+      await supabase.from('teams').update({ status: null }).eq('id', previousWinner)
+      const back = computeNextSlot(matches, match)
+      if (back) {
+        const backMatch = findMatch(matches, back.round_number, back.side, back.match_index)
+        if (backMatch && backMatch[back.slotField] === previousWinner) {
+          await supabase.from('bracket_matches').update({ [back.slotField]: null }).eq('id', backMatch.id)
+          if (backMatch.winner_id) {
+            await supabase.from('bracket_matches').update({ winner_id: null, status: 'pendiente' }).eq('id', backMatch.id)
           }
         }
       }
-      // refetch to sync
-      const [{ data: m1 }] = await Promise.all([
-        supabase.from('bracket_matches').select('*').eq('tournament_id', selectedId).order('round_number'),
-      ])
-      if (m1) setMatches(m1)
-      return
     }
-
-    // Case: both scores valid and one is strictly greater
-    const newWinnerId = numeric1 > numeric2 ? updated.team1_id : updated.team2_id
-    if (newWinnerId === updated.winner_id) {
-      // Winner unchanged, but maybe score changed → toast and done
-      toast(`Marcador actualizado: ${numeric1} – ${numeric2}`, 'ok')
-      return
-    }
-
-    // Winner is changing (or being set for the first time)
-    const loserId = numeric1 > numeric2 ? updated.team2_id : updated.team1_id
-    const isFinal = updated.round_name === 'Final'
-
-    let optimistic = nextState.map((m) =>
-      m.id === matchId
-        ? { ...m, winner_id: newWinnerId, status: 'jugado' }
-        : m,
-    )
-    if (!isFinal) {
-      const next = computeNextSlot(matches, updated)
-      if (next) {
-        const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
-        if (nextMatch) {
-          optimistic = optimistic.map((m) =>
-            m.id === nextMatch.id ? { ...m, [next.slotField]: newWinnerId } : m,
-          )
-        }
-      }
-    }
-    setMatches(optimistic)
-
-    // Persist: winner + status
-    await supabase.from('bracket_matches').update({ winner_id: newWinnerId, status: 'jugado' }).eq('id', matchId)
-
-    if (isFinal) {
-      await supabase.from('teams').update({ status: 'campeon' }).eq('id', newWinnerId)
-      if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
-      toast(`🏆 ${teamName(teams, newWinnerId)} es el campeón`, 'ok')
-    } else {
-      const next = computeNextSlot(matches, updated)
-      if (next) {
-        const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
-        if (nextMatch) {
-          await supabase.from('bracket_matches').update({ [next.slotField]: newWinnerId }).eq('id', nextMatch.id)
-        }
-      }
-      await supabase.from('teams').update({ status: 'avanzo' }).eq('id', newWinnerId)
-      if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
-      toast(`✅ ${teamName(teams, newWinnerId)} gana ${numeric1}–${numeric2} y avanza`, 'ok')
-    }
-
-    // Final refetch
-    const [{ data: m2 }] = await Promise.all([
-      supabase.from('bracket_matches').select('*').eq('tournament_id', selectedId).order('round_number'),
-    ])
-    if (m2) setMatches(m2)
+    const { data: matchesRes } = await supabase
+      .from('bracket_matches')
+      .select('*')
+      .eq('tournament_id', selectedId)
+      .order('round_number')
+    if (matchesRes) setMatches(matchesRes)
+    toast('Cruce reabierto', 'ok')
   }
 
   if (loading) return <div className="loading-screen">Cargando torneos…</div>
@@ -330,9 +270,10 @@ export default function Torneos() {
                 teams={teams}
                 tournamentName={selected?.name}
                 myTeamId={myTeamId}
-                onPickWinner={handlePickWinner}
-                onScoreChange={handleScoreChange}
                 canEdit={isAdmin}
+                onScoreChange={handleScoreChange}
+                onFinalize={handleFinalize}
+                onReopen={handleReopen}
               />
             </>
           )}

@@ -13,118 +13,146 @@ function statusLabel(status) {
   return status
 }
 
-function MatchTeamRow({ team, match, teams, onPickWinner, onScoreChange, canEdit, isMyTeam }) {
-  const isWinner = match.winner_id && match.winner_id === team?.id
-  const isLoser = match.status === 'jugado' && match.winner_id && team && match.winner_id !== team.id
-  const isLive = match.status === 'en_juego'
-  const t1 = teamById(teams, match.team1_id)
-  const t2 = teamById(teams, match.team2_id)
-  const bothDefined = t1 && t2
-
-  const scoreField = team && team.id === match.team1_id ? 'team1_score' : 'team2_score'
-  const rawScore = team ? match[scoreField] : null
-  const hasScore = rawScore !== null && rawScore !== undefined && rawScore !== '' && !Number.isNaN(Number(rawScore))
-
-  // Leading team in live matches (only when both have scores and no winner yet)
-  const otherField = scoreField === 'team1_score' ? 'team2_score' : 'team1_score'
-  const myNum = hasScore ? Number(rawScore) : null
-  const otherNum = match[otherField] !== null && match[otherField] !== undefined && match[otherField] !== ''
-    ? Number(match[otherField])
-    : null
-  const isLeading =
-    !match.winner_id &&
-    match.status !== 'jugado' &&
-    myNum !== null &&
-    otherNum !== null &&
-    myNum > otherNum
-
-  if (!team) {
+function ScoreBox({ value, side, onChange, editable, showValue, t1Wins, t2Wins, t1Leading, t2Leading }) {
+  if (!editable) {
     return (
-      <div className="match-team match-team--empty">
-        <span className="match-team__placeholder-dot" aria-hidden="true" />
-        <span className="match-team__empty">Por definir</span>
+      <div className={`bracket-vs__score ${t1Wins && side === 'left' ? 'is-winner' : ''} ${t2Wins && side === 'right' ? 'is-winner' : ''} ${(t1Leading && side === 'left') || (t2Leading && side === 'right') ? 'is-leading' : ''}`}>
+        {showValue ? (value ?? '—') : '—'}
       </div>
     )
   }
-
   return (
-    <div
-      className={['match-team', isWinner && 'is-winner', isLoser && 'is-loser', isMyTeam && 'is-me', isLive && 'is-live', isLeading && 'is-leading']
-        .filter(Boolean)
-        .join(' ')}
-    >
-      <TeamBadge team={team} size="sm" />
-      <span className="match-team__name" title={team.name}>{team.name}</span>
-      {canEdit && bothDefined ? (
-        <input
-          type="number"
-          min="0"
-          className="match-team__score-input"
-          defaultValue={hasScore ? rawScore : ''}
-          aria-label={`Puntos de ${team.name}`}
-          onBlur={(e) => {
-            const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0)
-            if (v !== rawScore) onScoreChange(match.id, scoreField, v)
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur()
-          }}
-        />
-      ) : (
-        <span className="match-team__score">{hasScore ? rawScore : '—'}</span>
-      )}
-      {canEdit && bothDefined && (
-        <button
-          type="button"
-          className={`match-team__pick ${isWinner ? 'is-on' : ''}`}
-          title="Marcar como ganador"
-          onClick={() => onPickWinner(match.id, team.id)}
-        >
-          ✓
-        </button>
-      )}
+    <input
+      type="number"
+      min="0"
+      className={`bracket-vs__score-input ${t1Leading && side === 'left' ? 'is-leading' : ''} ${t2Leading && side === 'right' ? 'is-leading' : ''}`}
+      defaultValue={value ?? ''}
+      placeholder="0"
+      aria-label={`Puntos del equipo ${side === 'left' ? 1 : 2}`}
+      onBlur={(e) => {
+        const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0)
+        if (v !== value) onChange(v)
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') e.currentTarget.blur()
+      }}
+    />
+  )
+}
+
+function NameBox({ team, side, t1Wins, t2Wins, t1Leading, t2Leading, isDone, myTeamId }) {
+  if (!team) {
+    return (
+      <div className="bracket-vs__name bracket-vs__name--empty">
+        <span className="bracket-vs__placeholder" />
+        <span>Por definir</span>
+      </div>
+    )
+  }
+  const winsSide = (t1Wins && side === 'left') || (t2Wins && side === 'right')
+  const leads = (t1Leading && side === 'left') || (t2Leading && side === 'right')
+  const lost = isDone && ((t1Wins && side === 'right') || (t2Wins && side === 'left'))
+  const me = team.id === myTeamId
+  return (
+    <div className={`bracket-vs__name ${winsSide ? 'is-winner' : ''} ${leads ? 'is-leading' : ''} ${lost ? 'is-loser' : ''} ${me ? 'is-me' : ''}`}>
+      <span className="bracket-vs__badge"><TeamBadge team={team} size="md" /></span>
+      <span className="bracket-vs__team-name" title={team.name}>{team.name}</span>
     </div>
   )
 }
 
-function MatchBox({ match, teams, myTeamId, onPickWinner, onScoreChange, canEdit, highlight }) {
+/* ---------------------------------------------------------------- */
+/* VS-style match: [name-box] [score-box]  VS  [score-box] [name-box] */
+/* ---------------------------------------------------------------- */
+function MatchBox({ match, teams, myTeamId, onScoreChange, onFinalize, onReopen, canEdit }) {
   const t1 = teamById(teams, match.team1_id)
   const t2 = teamById(teams, match.team2_id)
+  const bothDefined = t1 && t2
+  const isDone = match.status === 'jugado'
+  const isLive = match.status === 'en_juego'
+  const isPending = !isDone && !isLive
+
+  const s1Raw = match.team1_score
+  const s2Raw = match.team2_score
+  const s1 = s1Raw !== null && s1Raw !== undefined && s1Raw !== '' ? Number(s1Raw) : null
+  const s2 = s2Raw !== null && s2Raw !== undefined && s2Raw !== '' ? Number(s2Raw) : null
+  const bothScores = s1 !== null && s2 !== null
+
+  // Visual state of each side
+  const winnerId = match.winner_id
+  const t1Wins = winnerId && winnerId === t1?.id
+  const t2Wins = winnerId && winnerId === t2?.id
+  const t1Leading = !winnerId && bothScores && s1 > s2
+  const t2Leading = !winnerId && bothScores && s2 > s1
+
+  // Admin can only edit while the match is pending and both teams are defined
+  const editable = canEdit && isPending && bothDefined
+  const canFinalize = canEdit && isPending && bothDefined && bothScores && s1 !== s2
+  const canReopen = canEdit && (isDone || isLive)
+
   return (
     <div
-      className={['match-box', highlight && 'is-highlight', match.status === 'en_juego' && 'is-live', match.status === 'jugado' && 'is-done']
-        .filter(Boolean)
-        .join(' ')}
+      className={[
+        'bracket-vs',
+        isLive && 'is-live',
+        isDone && 'is-done',
+        isPending && 'is-pending',
+        bothDefined && 'has-teams',
+      ].filter(Boolean).join(' ')}
       data-match={match.id}
     >
-      <div className="match-box__head">
-        <span className="match-box__round">{match.round_name}</span>
-        <span className={`match-box__status status-${match.status || 'pendiente'}`}>{statusLabel(match.status)}</span>
+      {/* Top row: name | score  VS  score | name */}
+      <div className="bracket-vs__row bracket-vs__row--top">
+        <NameBox team={t1} side="left" t1Wins={t1Wins} t2Wins={t2Wins} t1Leading={t1Leading} t2Leading={t2Leading} isDone={isDone} myTeamId={myTeamId} />
+        <ScoreBox
+          value={s1}
+          side="left"
+          editable={editable}
+          showValue={isLive || isDone}
+          t1Wins={t1Wins}
+          t2Wins={t2Wins}
+          t1Leading={t1Leading}
+          t2Leading={t2Leading}
+          onChange={(v) => onScoreChange(match.id, 'team1_score', v)}
+        />
+        <div className="bracket-vs__vs" aria-hidden="true">VS</div>
+        <ScoreBox
+          value={s2}
+          side="right"
+          editable={editable}
+          showValue={isLive || isDone}
+          t1Wins={t1Wins}
+          t2Wins={t2Wins}
+          t1Leading={t1Leading}
+          t2Leading={t2Leading}
+          onChange={(v) => onScoreChange(match.id, 'team2_score', v)}
+        />
+        <NameBox team={t2} side="right" t1Wins={t1Wins} t2Wins={t2Wins} t1Leading={t1Leading} t2Leading={t2Leading} isDone={isDone} myTeamId={myTeamId} />
       </div>
-      <div className="match-box__divider" aria-hidden="true" />
-      <MatchTeamRow
-        team={t1}
-        match={match}
-        teams={teams}
-        onPickWinner={onPickWinner}
-        onScoreChange={onScoreChange}
-        canEdit={canEdit}
-        isMyTeam={t1?.id === myTeamId}
-      />
-      <MatchTeamRow
-        team={t2}
-        match={match}
-        teams={teams}
-        onPickWinner={onPickWinner}
-        onScoreChange={onScoreChange}
-        canEdit={canEdit}
-        isMyTeam={t2?.id === myTeamId}
-      />
+
+      {/* Round tag + admin actions */}
+      <div className="bracket-vs__foot">
+        <span className="bracket-vs__round">{match.round_name}</span>
+        <span className={`bracket-vs__status status-${match.status || 'pendiente'}`}>{statusLabel(match.status)}</span>
+        {canFinalize && (
+          <button type="button" className="bracket-vs__finalize" onClick={() => onFinalize(match.id)}>
+            Finalizar
+          </button>
+        )}
+        {canReopen && (
+          <button type="button" className="bracket-vs__reopen" onClick={() => onReopen(match.id)} title="Reabrir cruce">
+            ↺
+          </button>
+        )}
+      </div>
     </div>
   )
 }
 
-export default function Bracket({ matches, teams, tournamentName, myTeamId, onPickWinner, onScoreChange, canEdit }) {
+/* ---------------------------------------------------------------- */
+/* Auto-scaling bracket that fits one screen                         */
+/* ---------------------------------------------------------------- */
+export default function Bracket({ matches, teams, tournamentName, myTeamId, canEdit, onScoreChange, onFinalize, onReopen }) {
   const outerRef = useRef(null)
   const svgRef = useRef(null)
   const boxRefs = useRef({})
@@ -208,6 +236,7 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
     svg.innerHTML = paths
   }
 
+  // Re-measure after layout changes (resize / match count changes) to redraw connectors.
   useLayoutEffect(() => {
     boxRefs.current = {}
     forceTick((t) => t + 1)
@@ -239,6 +268,7 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
 
   return (
     <div className="bracket-hero">
+      {/* Header keeps the live-report banner; the bracket itself scales separately */}
       <div className="bracket-live-report">
         <div className="bracket-live-report__title">
           <span className="bracket-live-report__dot" />
@@ -278,106 +308,96 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
         )}
       </div>
 
-      <div className="bracket-scroll">
+      <div className="bracket-stage-wrapper">
         <div className="bracket-outer" ref={outerRef}>
-          <div className="bracket-side bracket-side--izquierda">
-            {roundsForSide('izquierda').map((r) => {
-              const ms = matches
-                .filter((m) => m.side === 'izquierda' && m.round_number === r)
-                .sort((a, b) => a.match_index - b.match_index)
-              return (
-                <div className="bracket-round" key={`izq-${r}`}>
-                  <span className="bracket-round__label">{ms[0]?.round_name}</span>
-                  {ms.map((m, i) => (
-                    <div className="bracket-round__slot" key={m.id}>
-                      <MatchBox
-                        match={m}
-                        teams={teams}
-                        myTeamId={myTeamId}
-                        onPickWinner={onPickWinner}
-                        onScoreChange={onScoreChange}
-                        canEdit={canEdit}
-                        highlight={liveMatch?.id === m.id}
-                        matchRef={(el) => {
-                          if (el) boxRefs.current[m.id] = el
-                        }}
-                      />
-                      {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
-                    </div>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
-
-          <div className="bracket-center">
-            <div className="bracket-center__ball" aria-hidden="true">
-              <svg viewBox="0 0 64 64" width="64" height="64">
-                <circle cx="32" cy="32" r="30" fill="#ff6b21" />
-                <path d="M32 2 C 18 14 18 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
-                <path d="M32 2 C 46 14 46 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
-                <path d="M2 32 H 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
-                <path d="M10 14 C 22 22 42 22 54 14" stroke="#0c1018" strokeWidth="2.5" fill="none" />
-                <path d="M10 50 C 22 42 42 42 54 50" stroke="#0c1018" strokeWidth="2.5" fill="none" />
-              </svg>
+            <div className="bracket-side bracket-side--izquierda">
+              {roundsForSide('izquierda').map((r) => {
+                const ms = matches
+                  .filter((m) => m.side === 'izquierda' && m.round_number === r)
+                  .sort((a, b) => a.match_index - b.match_index)
+                return (
+                  <div className="bracket-round" key={`izq-${r}`}>
+                    <span className="bracket-round__label">{ms[0]?.round_name}</span>
+                    {ms.map((m, i) => (
+                      <div className="bracket-round__slot" key={m.id}>
+                        <MatchBox
+                          match={m}
+                          teams={teams}
+                          myTeamId={myTeamId}
+                          canEdit={canEdit}
+                          onScoreChange={onScoreChange}
+                          onFinalize={onFinalize}
+                          onReopen={onReopen}
+                        />
+                        {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
-            <span className="bracket-center__label">{finalMatch ? 'FINAL' : 'CUADRO'}</span>
-            {finalMatch && (
-              <MatchBox
-                match={finalMatch}
-                teams={teams}
-                myTeamId={myTeamId}
-                onPickWinner={onPickWinner}
-                onScoreChange={onScoreChange}
-                canEdit={canEdit}
-                highlight={liveMatch?.id === finalMatch.id}
-                matchRef={(el) => {
-                  if (el) boxRefs.current[finalMatch.id] = el
-                }}
-              />
-            )}
-            <div className="bracket-center__trophy" aria-hidden="true">🏆</div>
-          </div>
 
-          <div className="bracket-side bracket-side--derecha">
-            {roundsForSide('derecha').map((r) => {
-              const ms = matches
-                .filter((m) => m.side === 'derecha' && m.round_number === r)
-                .sort((a, b) => a.match_index - b.match_index)
-              return (
-                <div className="bracket-round" key={`der-${r}`}>
-                  <span className="bracket-round__label">{ms[0]?.round_name}</span>
-                  {ms.map((m, i) => (
-                    <div className="bracket-round__slot" key={m.id}>
-                      <MatchBox
-                        match={m}
-                        teams={teams}
-                        myTeamId={myTeamId}
-                        onPickWinner={onPickWinner}
-                        onScoreChange={onScoreChange}
-                        canEdit={canEdit}
-                        highlight={liveMatch?.id === m.id}
-                        matchRef={(el) => {
-                          if (el) boxRefs.current[m.id] = el
-                        }}
-                      />
-                      {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
-                    </div>
-                  ))}
-                </div>
-              )
-            })}
-          </div>
+            <div className="bracket-center">
+              <div className="bracket-center__ball" aria-hidden="true">
+                <svg viewBox="0 0 64 64" width="56" height="56">
+                  <circle cx="32" cy="32" r="30" fill="#ff6b21" />
+                  <path d="M32 2 C 18 14 18 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                  <path d="M32 2 C 46 14 46 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                  <path d="M2 32 H 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                  <path d="M10 14 C 22 22 42 22 54 14" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                  <path d="M10 50 C 22 42 42 42 54 50" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                </svg>
+              </div>
+              <span className="bracket-center__label">{finalMatch ? 'FINAL' : 'CUADRO'}</span>
+              {finalMatch && (
+                <MatchBox
+                  match={finalMatch}
+                  teams={teams}
+                  myTeamId={myTeamId}
+                  canEdit={canEdit}
+                  onScoreChange={onScoreChange}
+                  onFinalize={onFinalize}
+                  onReopen={onReopen}
+                />
+              )}
+              <div className="bracket-center__trophy" aria-hidden="true">🏆</div>
+            </div>
 
-          <svg className="bracket-connectors" ref={svgRef} />
-        </div>
+            <div className="bracket-side bracket-side--derecha">
+              {roundsForSide('derecha').map((r) => {
+                const ms = matches
+                  .filter((m) => m.side === 'derecha' && m.round_number === r)
+                  .sort((a, b) => a.match_index - b.match_index)
+                return (
+                  <div className="bracket-round" key={`der-${r}`}>
+                    <span className="bracket-round__label">{ms[0]?.round_name}</span>
+                    {ms.map((m, i) => (
+                      <div className="bracket-round__slot" key={m.id}>
+                        <MatchBox
+                          match={m}
+                          teams={teams}
+                          myTeamId={myTeamId}
+                          canEdit={canEdit}
+                          onScoreChange={onScoreChange}
+                          onFinalize={onFinalize}
+                          onReopen={onReopen}
+                        />
+                        {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
+                      </div>
+                    ))}
+                  </div>
+                )
+              })}
+            </div>
+
+            <svg className="bracket-connectors" ref={svgRef} />
+          </div>
       </div>
 
       <div className="bracket-footer">
         <p className="eyebrow bracket-footer__title">YOUR TOURNAMENT LEAGUE</p>
         <p className="bracket-footer__text">
-          Sigue cada cruce, cada resultado y cada campeón de tu torneo. Marca a tu equipo favorito y
-          entérate primero de quién avanza en el cuadro de eliminación directa.
+          Sigue cada cruce, cada resultado y cada campeón de tu torneo.
         </p>
         <div className="bracket-footer__sponsors">
           <span className="sponsor-dot" />
