@@ -124,6 +124,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .mini { font-size: 12px; color: var(--texto-tenue); }
 .error-msg { background: rgba(255,77,77,.1); border-left: 3px solid var(--rojo); padding: 9px 12px; font-size: 13px; color: #ff9a9a; border-radius: 4px; }
 
+.link-jugador { color: var(--naranja); text-decoration: none; font-weight: 600; }
+.link-jugador:hover { text-decoration: underline; }
+
 .loading-screen {
   min-height: 100vh;
   display: flex;

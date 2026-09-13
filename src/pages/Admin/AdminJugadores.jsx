@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 
@@ -10,6 +11,7 @@ const EMPTY = {
 export default function AdminJugadores({ selectedId, teams, players, reloadData }) {
   const toast = useToast()
   const [form, setForm] = useState(EMPTY)
+  const [editingId, setEditingId] = useState(null)
   const [jugadorProfiles, setJugadorProfiles] = useState([])
 
   useEffect(() => {
@@ -20,38 +22,57 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
 
   function set(field, value) { setForm((f) => ({ ...f, [field]: value })) }
 
-  async function handleAdd() {
+  function startEdit(p) {
+    setEditingId(p.id)
+    setForm({
+      full_name: p.full_name, team_id: p.team_id || '', profile_id: p.profile_id || '',
+      dorsal: p.dorsal ?? '', position: p.position || '',
+      goals: p.goals, assists: p.assists, yellow_cards: p.yellow_cards, red_cards: p.red_cards,
+      has_sanction: String(p.has_sanction), sanction_reason: p.sanction_reason || '',
+    })
+  }
+  function cancelEdit() { setEditingId(null); setForm(EMPTY) }
+
+  async function handleSave() {
     if (!form.full_name.trim()) return toast('Ponle un nombre al jugador', 'err')
+    const payload = {
+      team_id: form.team_id || null,
+      profile_id: form.profile_id || null,
+      full_name: form.full_name.trim(),
+      dorsal: form.dorsal === '' ? null : +form.dorsal,
+      position: form.position.trim() || null,
+      goals: +form.goals, assists: +form.assists, yellow_cards: +form.yellow_cards, red_cards: +form.red_cards,
+      has_sanction: form.has_sanction === 'true',
+      sanction_reason: form.sanction_reason.trim() || null,
+    }
     try {
-      const { error } = await supabase.from('players').insert({
-        tournament_id: selectedId,
-        team_id: form.team_id || null,
-        profile_id: form.profile_id || null,
-        full_name: form.full_name.trim(),
-        dorsal: form.dorsal || null,
-        position: form.position.trim() || null,
-        goals: +form.goals, assists: +form.assists, yellow_cards: +form.yellow_cards, red_cards: +form.red_cards,
-        has_sanction: form.has_sanction === 'true',
-        sanction_reason: form.sanction_reason.trim() || null,
-      })
-      if (error) throw error
+      if (editingId) {
+        const { error } = await supabase.from('players').update(payload).eq('id', editingId)
+        if (error) throw error
+        toast('Jugador actualizado', 'ok')
+      } else {
+        const { error } = await supabase.from('players').insert({ tournament_id: selectedId, ...payload })
+        if (error) throw error
+        toast('Jugador guardado', 'ok')
+      }
       await reloadData()
-      setForm(EMPTY)
-      toast('Jugador guardado', 'ok')
+      cancelEdit()
     } catch (e) {
       toast('Error: ' + e.message, 'err')
     }
   }
 
   async function handleDelete(id) {
+    if (!window.confirm('¿Eliminar este jugador del roster?')) return
     await supabase.from('players').delete().eq('id', id)
+    if (editingId === id) cancelEdit()
     await reloadData()
   }
 
   return (
     <>
       <div className="card">
-        <h3>Añadir jugador / estadísticas</h3>
+        <h3>{editingId ? 'Editar jugador' : 'Añadir jugador / estadísticas'}</h3>
         <div className="form-grid">
           <div className="field"><label>Nombre completo</label><input value={form.full_name} onChange={(e) => set('full_name', e.target.value)} /></div>
           <div className="field">
@@ -83,7 +104,10 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
             </select>
           </div>
         </div>
-        <button className="btn" onClick={handleAdd}>Guardar jugador</button>
+        <div className="row-actions">
+          <button className="btn" onClick={handleSave}>{editingId ? 'Guardar cambios' : 'Guardar jugador'}</button>
+          {editingId && <button className="btn ghost" onClick={cancelEdit}>Cancelar edición</button>}
+        </div>
       </div>
 
       <div className="card">
@@ -93,10 +117,13 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
           <tbody>
             {players.map((p) => (
               <tr key={p.id}>
-                <td>{p.full_name}</td>
+                <td><Link className="link-jugador" to={`/jugador/${p.id}`}>{p.full_name}</Link></td>
                 <td>{p.teams?.name || '—'}</td>
                 <td>{p.has_sanction ? <span className="badge san">Sancionado</span> : <span className="badge ok">Habilitado</span>}</td>
-                <td><button className="pill-btn" onClick={() => handleDelete(p.id)}>Eliminar</button></td>
+                <td className="row-actions">
+                  <button className="pill-btn" onClick={() => startEdit(p)}>Editar</button>
+                  <button className="pill-btn" onClick={() => handleDelete(p.id)}>Eliminar</button>
+                </td>
               </tr>
             ))}
           </tbody>

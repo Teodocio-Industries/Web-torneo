@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 import { useAuth } from '../../context/AuthContext'
 import './Jugadores.css'
@@ -21,16 +23,20 @@ export default function Jugadores() {
 
   useEffect(() => {
     if (!selectedId) return
-    async function loadPlayers() {
-      const { data } = await supabase
-        .from('players')
-        .select('*, teams(name,flag_url)')
-        .eq('tournament_id', selectedId)
-        .order('full_name')
-      setPlayers(data || [])
-    }
     loadPlayers()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId])
+
+  async function loadPlayers() {
+    const { data } = await supabase
+      .from('players')
+      .select('*, teams(name,flag_url)')
+      .eq('tournament_id', selectedId)
+      .order('full_name')
+    setPlayers(data || [])
+  }
+
+  useRealtimeRefresh(['players'], loadPlayers, [selectedId])
 
   const miFicha = myPlayers.find((mp) => mp.tournament_id === selectedId)
 
@@ -86,7 +92,7 @@ export default function Jugadores() {
             <tbody>
               {players.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.full_name}</td>
+                  <td><Link className="link-jugador" to={`/jugador/${p.id}`}>{p.full_name}</Link></td>
                   <td className="team-cell">{p.teams && <TeamBadge team={p.teams} size="sm" />}{p.teams?.name || '—'}</td>
                   <td>{p.dorsal ?? '—'}</td>
                   <td>{p.position ?? '—'}</td>

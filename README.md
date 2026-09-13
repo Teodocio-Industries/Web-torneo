@@ -8,6 +8,24 @@ Mantiene la identidad visual del repo original (`style.css`: negro `#070b11`
 + naranja `#ff6b21`, tipografías Inter/Oswald), reorganizada en un proyecto
 de componentes en vez de páginas HTML sueltas.
 
+## Novedades de esta versión
+
+- **Bracket a pantalla completa**: el cuadro de cruces ya no vive dentro de una
+  tarjeta angosta; ocupa todo el ancho de la pantalla en la pestaña
+  "Cuadro de cruces" de Torneos.
+- **Edición de equipos y jugadores**: en Admin → Equipos y Admin → Jugadores
+  ahora hay botón "Editar" en cada fila (además de "Eliminar"), no solo alta.
+- **Página individual por jugador** (`/jugador/:id`): ficha, sanción y dos
+  gráficos (sus estadísticas y comparación contra el promedio del torneo),
+  visible para cualquier usuario logueado (admin, jugador o usuario normal).
+  Se llega haciendo clic en el nombre de cualquier jugador en Torneos →
+  Estadísticas o en Jugadores.
+- **Pestaña "Estadísticas"** en Torneos: gráficos generales del torneo
+  (máximos anotadores, puntos por equipo, proporción de sancionados).
+- **Tiempo real**: cambios que haga el admin (marcador, ganador, tabla,
+  jugadores) se reflejan al instante para todos los que estén viendo el
+  torneo, sin recargar la página (Supabase Realtime).
+
 ## Estructura de carpetas
 
 ```
@@ -21,27 +39,31 @@ torneo-app/
 │  ├─ lib/
 │  │  ├─ supabaseClient.js
 │  │  ├─ bracket.js       # lógica pura para generar/avanzar el cuadro
-│  │  └─ storage.js       # subida de imágenes a Supabase Storage
+│  │  ├─ storage.js       # subida de imágenes a Supabase Storage
+│  │  └─ useRealtimeRefresh.js  # hook de suscripción en tiempo real
 │  ├─ context/
 │  │  └─ AuthContext.jsx  # sesión, perfil y rol del usuario
 │  ├─ components/
 │  │  ├─ Navbar/
-│  │  ├─ Bracket/         # cuadro de eliminación con conectores SVG
+│  │  ├─ Bracket/         # cuadro de eliminación a pantalla completa (conectores SVG)
 │  │  ├─ TeamBadge/
 │  │  ├─ Toast/
+│  │  ├─ TournamentStats/ # gráficos generales del torneo (recharts)
+│  │  ├─ PlayerCharts/    # gráficos individuales de un jugador (recharts)
 │  │  └─ ProtectedRoute.jsx
 │  └─ pages/
 │     ├─ Home/            # landing pública
 │     ├─ Login/           # inicio de sesión + cuentas de prueba
-│     ├─ Torneos/         # lista de torneos + cuadro + tabla
+│     ├─ Torneos/         # lista de torneos + cuadro + tabla + estadísticas
 │     ├─ Jugadores/       # ficha propia (rol jugador) + roster
+│     ├─ PlayerProfile/   # página pública /jugador/:id con gráficos
 │     └─ Admin/           # panel de administración por pestañas
 │        ├─ Admin.jsx
 │        ├─ AdminTorneos.jsx
-│        ├─ AdminEquipos.jsx
+│        ├─ AdminEquipos.jsx   (alta, edición y borrado de equipos)
 │        ├─ AdminBracket.jsx
 │        ├─ AdminTabla.jsx
-│        ├─ AdminJugadores.jsx
+│        ├─ AdminJugadores.jsx (alta, edición y borrado de jugadores)
 │        └─ AdminCuentas.jsx
 ```
 
