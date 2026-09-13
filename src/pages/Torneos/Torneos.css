@@ -1,0 +1,45 @@
+.torneos-page { padding-top: 34px; }
+.torneos-encabezado { margin-bottom: 26px; }
+.torneos-encabezado h1 { font-size: 34px; margin: 6px 0; }
+
+.lista-torneos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.tarjeta-torneo {
+  text-align: left;
+  background: var(--panel);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 14px;
+  cursor: pointer;
+  color: var(--texto);
+  position: relative;
+  overflow: hidden;
+}
+.tarjeta-torneo:hover { border-color: var(--naranja); }
+.tarjeta-torneo.is-active { border-color: var(--naranja); box-shadow: 0 0 0 1px var(--naranja); }
+.tarjeta-torneo__img { width: 100%; height: 90px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; }
+.tarjeta-torneo__estado { font-size: 10px; text-transform: uppercase; color: var(--naranja); font-weight: 700; letter-spacing: 1px; }
+.tarjeta-torneo h3 { font-size: 16px; margin: 6px 0 4px; }
+.tarjeta-torneo p { font-size: 12px; color: var(--texto-tenue); margin: 0; }
+
+.torneo-tabs { display: flex; gap: 8px; margin-bottom: 18px; }
+.torneo-tabs button {
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  color: var(--texto-tenue);
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.torneo-tabs button.is-active { color: #fff; background: var(--naranja); border-color: var(--naranja); }
+
+.grupo-titulo { color: var(--naranja); font-size: 15px; margin: 18px 0 8px; }
+.team-cell { display: flex; align-items: center; gap: 8px; }
+.pts { font-weight: 700; color: var(--naranja); }

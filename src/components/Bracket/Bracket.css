@@ -1,0 +1,94 @@
+.bracket-hero {
+  background: radial-gradient(ellipse at top, #101724 0%, var(--negro) 60%);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: 26px 10px 40px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bracket-hero__head {
+  text-align: center;
+  margin-bottom: 22px;
+}
+.bracket-hero__head h2 {
+  font-size: clamp(20px, 3vw, 30px);
+  color: var(--texto);
+}
+
+.bracket-scroll { overflow-x: auto; }
+
+.bracket-outer {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  min-width: 1050px;
+  position: relative;
+  padding: 10px 6px 30px;
+}
+
+.bracket-side { display: flex; gap: 24px; position: relative; }
+.bracket-side--derecha { flex-direction: row-reverse; }
+
+.bracket-round {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 14px;
+  min-width: 150px;
+}
+
+.match-box {
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  z-index: 3;
+}
+
+.match-team {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 9px;
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 30px;
+  border-bottom: 1px solid var(--linea);
+}
+.match-team:last-child { border-bottom: none; }
+
+.match-team__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-team__score { margin-left: auto; font-family: Oswald, sans-serif; font-size: 14px; color: var(--naranja); }
+
+.match-team.is-winner { background: rgba(255, 107, 33, 0.12); }
+.match-team.is-loser { opacity: .4; text-decoration: line-through; }
+.match-team.is-me { outline: 2px solid var(--verde); outline-offset: -2px; }
+.match-team--empty { color: var(--texto-tenue); font-style: italic; padding: 6px 9px; font-size: 13px; }
+
+.final-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 20px;
+  position: relative;
+  z-index: 3;
+  min-width: 150px;
+}
+.final-block__trophy { font-size: 46px; margin-bottom: 6px; filter: drop-shadow(0 4px 8px rgba(255,107,33,.35)); }
+.final-block__label { font-family: Oswald, sans-serif; color: var(--naranja); font-size: 18px; margin-bottom: 8px; letter-spacing: 1px; }
+
+.bracket-connectors {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+.bracket-connectors path {
+  stroke: var(--linea);
+  stroke-width: 2;
+  fill: none;
+}

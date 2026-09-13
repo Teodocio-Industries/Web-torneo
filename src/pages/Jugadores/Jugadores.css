@@ -1,0 +1,8 @@
+.jugadores-page { padding-top: 34px; }
+.jugadores-encabezado h1 { font-size: 34px; margin: 6px 0 20px; }
+
+.mi-ficha__head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.mi-ficha__head h2 { font-size: 20px; }
+.mi-ficha__stat { font-family: Oswald, sans-serif; font-size: 22px; color: var(--naranja); }
+
+.team-cell { display: flex; align-items: center; gap: 8px; }

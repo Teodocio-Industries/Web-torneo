@@ -1,0 +1,74 @@
+.barra-superior {
+  height: 58px;
+  border-bottom: 1px solid var(--linea);
+  display: flex;
+  align-items: center;
+  padding: 0 22px;
+  position: sticky;
+  top: 0;
+  background: #090d13;
+  z-index: 10;
+  gap: 24px;
+}
+
+.marca {
+  font-size: 15px;
+  color: #f0f0f0;
+  text-decoration: none;
+  font-weight: 700;
+  font-family: Oswald, sans-serif;
+  white-space: nowrap;
+}
+
+.navegacion {
+  display: flex;
+  height: 100%;
+  gap: 26px;
+  align-items: center;
+  flex: 1;
+}
+
+.navegacion a {
+  color: var(--texto-tenue);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.navegacion a.active,
+.navegacion a:hover {
+  color: var(--naranja);
+}
+
+.sesion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usuario-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  background: var(--panel-2);
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--linea);
+}
+
+.rol {
+  font-size: 10px;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.rol-admin { background: var(--naranja); color: #1a0e05; }
+.rol-jugador { background: var(--verde); color: #04220f; }
+.rol-usuario { background: #333c48; color: var(--texto); }
+
+@media (max-width: 720px) {
+  .barra-superior { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 10px; }
+  .navegacion { gap: 14px; order: 3; width: 100%; }
+}

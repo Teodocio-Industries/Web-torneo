@@ -1,0 +1,29 @@
+.toast-stack {
+  position: fixed;
+  bottom: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 999;
+}
+
+.toast {
+  background: #141a24;
+  border: 1px solid var(--linea);
+  border-left: 3px solid var(--naranja);
+  color: var(--texto);
+  padding: 10px 16px;
+  font-size: 13px;
+  border-radius: 4px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.45);
+  max-width: 320px;
+}
+
+.toast--ok {
+  border-left-color: #37c26d;
+}
+
+.toast--err {
+  border-left-color: #ff4d4d;
+}
