@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Panel de administración de Caribe Sports Events." />
+    <title>Administración | Caribe Sports Events</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Oswald:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <aside class="barra-lateral">
+      <a class="marca" href="../../index.html"
+        ><span>CSE</span> Caribe Sports<br /><strong>ADMINISTRACIÓN</strong></a
+      >
+      <nav class="menu-admin" aria-label="Menú de administración">
+        <button class="opcion-menu activa" data-vista="resumen"><i>▦</i> Resumen</button>
+        <button class="opcion-menu" data-vista="torneos"><i>♜</i> Torneos</button>
+        <button class="opcion-menu" data-vista="equipos"><i>◈</i> Equipos</button>
+        <button class="opcion-menu" data-vista="jugadores"><i>●</i> Jugadores</button>
+        <button class="opcion-menu" data-vista="partidos"><i>◷</i> Partidos</button>
+        <button class="opcion-menu" data-vista="estadisticas"><i>▥</i> Estadísticas</button>
+      </nav>
+      <div class="cuenta">
+        <span class="avatar">JV</span>
+        <div><b>Administrador</b><small>Cuenta principal</small></div>
+        <a href="../../index.html" title="Salir">↗</a>
+      </div>
+    </aside>
+
+    <main class="contenido-principal">
+      <header class="barra-encabezado">
+        <button class="boton-menu" aria-label="Mostrar menú">☰</button>
+        <div>
+          <p class="miga">PANEL / <span id="nombre-vista">RESUMEN</span></p>
+          <h1 id="titulo-vista">Buenos días, Jeronimo</h1>
+        </div>
+        <div class="acciones-encabezado">
+          <button id="exportar" class="boton-secundario">↓ Exportar datos</button
+          ><button class="boton-principal" data-abrir="jugador">+ Nuevo jugador</button>
+        </div>
+      </header>
+
+      <section class="vista activa" id="resumen">
+        <div class="aviso">
+          <span>✦</span>
+          <p>
+            <b>Modo demostración.</b> Los cambios se guardan en este navegador; conecta Supabase
+            después para que todos los usuarios los vean.
+          </p>
+          <button class="cerrar-aviso" aria-label="Cerrar aviso">×</button>
+        </div>
+        <div class="tarjetas-resumen">
+          <article>
+            <span class="icono naranja">♜</span>
+            <p>Torneos activos</p>
+            <strong id="total-torneos">2</strong><small class="sube">↑ 1 este mes</small>
+          </article>
+          <article>
+            <span class="icono azul">◈</span>
+            <p>Equipos inscritos</p>
+            <strong>12</strong><small>En 4 torneos</small>
+          </article>
+          <article>
+            <span class="icono verde">●</span>
+            <p>Jugadores</p>
+            <strong id="total-jugadores">48</strong><small class="sube">↑ 6 esta semana</small>
+          </article>
+          <article>
+            <span class="icono violeta">◷</span>
+            <p>Partidos jugados</p>
+            <strong>36</strong><small>De 58 programados</small>
+          </article>
+        </div>
+        <div class="cuadricula-resumen">
+          <article class="panel grafica">
+            <div class="titulo-panel">
+              <div>
+                <p>RENDIMIENTO</p>
+                <h2>Partidos por semana</h2>
+              </div>
+              <select aria-label="Periodo de la gráfica">
+                <option>Últimas 6 semanas</option>
+              </select>
+            </div>
+            <div class="barras">
+              <div><span style="height: 35%"></span><b>Lun</b></div>
+              <div><span style="height: 58%"></span><b>Mar</b></div>
+              <div><span style="height: 42%"></span><b>Mié</b></div>
+              <div><span style="height: 84%"></span><b>Jue</b></div>
+              <div><span style="height: 62%"></span><b>Vie</b></div>
+              <div><span style="height: 95%"></span><b>Sáb</b></div>
+              <div><span style="height: 70%"></span><b>Dom</b></div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="titulo-panel">
+              <div>
+                <p>PRÓXIMO PARTIDO</p>
+                <h2>Liga de Otoño</h2>
+              </div>
+              <span class="etiqueta naranja">HOY</span>
+            </div>
+            <div class="partido-destacado">
+              <div><b>TG</b><span>Tigres</span></div>
+              <strong>VS<small>19:00</small></strong>
+              <div><b>TT</b><span>Titanes</span></div>
+            </div>
+            <p class="centro suave">Coliseo del Caribe · Cancha 1</p>
+            <button class="boton-ancho" data-ir="partidos">Gestionar partido →</button>
+          </article>
+        </div>
+        <article class="panel actividad">
+          <div class="titulo-panel">
+            <div>
+              <p>ACTIVIDAD RECIENTE</p>
+              <h2>Últimos cambios</h2>
+            </div>
+            <button class="enlace" data-ir="estadisticas">Ver todo</button>
+          </div>
+          <ul id="lista-actividad">
+            <li>
+              <span class="punto naranja"></span>
+              <p>
+                <b>Alex Mena</b> recibió 4 puntos en Liga de Otoño.<small>Hace 12 minutos</small>
+              </p>
+            </li>
+            <li>
+              <span class="punto verde"></span>
+              <p>Se registró el equipo <b>Atlantic Stars</b>.<small>Hace 2 horas</small></p>
+            </li>
+            <li>
+              <span class="punto azul"></span>
+              <p>Se creó el torneo <b>Copa Junior</b>.<small>Ayer</small></p>
+            </li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="vista" id="torneos">
+        <div class="cabecera-vista">
+          <div>
+            <h2>Torneos</h2>
+            <p>Administra las competiciones de la plataforma.</p>
+          </div>
+          <button class="boton-principal" data-abrir="torneo">+ Crear torneo</button>
+        </div>
+        <article class="panel tabla-panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Torneo</th>
+                <th>Fecha</th>
+                <th>Equipos</th>
+                <th>Estado</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-torneos">
+              <tr>
+                <td><b>Liga de Otoño</b><small>Temporada 2026</small></td>
+                <td>12 oct — 17 nov</td>
+                <td>12</td>
+                <td><span class="etiqueta verde">EN CURSO</span></td>
+                <td><button class="boton-icono">⋮</button></td>
+              </tr>
+              <tr>
+                <td><b>Copa Junior</b><small>U16 · 2026</small></td>
+                <td>20 jun — 20 jul</td>
+                <td>10</td>
+                <td><span class="etiqueta verde">EN CURSO</span></td>
+                <td><button class="boton-icono">⋮</button></td>
+              </tr>
+              <tr>
+                <td><b>Torneo de Alto Nivel</b><small>Élite · 2026</small></td>
+                <td>11 — 12 jun</td>
+                <td>8</td>
+                <td><span class="etiqueta naranja">PRÓXIMO</span></td>
+                <td><button class="boton-icono">⋮</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="vista" id="equipos">
+        <div class="cabecera-vista">
+          <div>
+            <h2>Equipos</h2>
+            <p>Equipos inscritos y sus responsables.</p>
+          </div>
+          <button class="boton-principal" data-abrir="equipo">+ Agregar equipo</button>
+        </div>
+        <div class="lista-equipos">
+          <article>
+            <b class="escudo naranja">TG</b>
+            <div>
+              <h3>Tigres</h3>
+              <p>12 jugadores · Liga de Otoño</p>
+            </div>
+            <button class="boton-icono">⋮</button>
+          </article>
+          <article>
+            <b class="escudo azul">TT</b>
+            <div>
+              <h3>Titanes</h3>
+              <p>11 jugadores · Liga de Otoño</p>
+            </div>
+            <button class="boton-icono">⋮</button>
+          </article>
+          <article>
+            <b class="escudo verde">CH</b>
+            <div>
+              <h3>Caribe Hoopers</h3>
+              <p>10 jugadores · Copa Junior</p>
+            </div>
+            <button class="boton-icono">⋮</button>
+          </article>
+          <article>
+            <b class="escudo violeta">FB</b>
+            <div>
+              <h3>Fénix B.C.</h3>
+              <p>9 jugadores · Copa Junior</p>
+            </div>
+            <button class="boton-icono">⋮</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="vista" id="jugadores">
+        <div class="cabecera-vista">
+          <div>
+            <h2>Jugadores</h2>
+            <p>Crea perfiles y asigna el PIN de acceso.</p>
+          </div>
+          <button class="boton-principal" data-abrir="jugador">+ Nuevo jugador</button>
+        </div>
+        <div class="barra-tabla">
+          <label class="buscador"
+            ><span>⌕</span
+            ><input id="buscar-jugador" type="search" placeholder="Buscar jugador" /></label
+          ><select id="filtro-equipo">
+            <option value="todos">Todos los equipos</option>
+            <option value="Tigres">Tigres</option>
+            <option value="Titanes">Titanes</option>
+            <option value="Caribe Hoopers">Caribe Hoopers</option>
+          </select>
+        </div>
+        <article class="panel tabla-panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Jugador</th>
+                <th>Equipo</th>
+                <th>Posición</th>
+                <th>PIN</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-jugadores"></tbody>
+          </table>
+        </article>
+      </section>
+
+      <section class="vista" id="partidos">
+        <div class="cabecera-vista">
+          <div>
+            <h2>Partidos</h2>
+            <p>Programa encuentros y registra resultados.</p>
+          </div>
+          <button class="boton-principal" data-abrir="partido">+ Programar partido</button>
+        </div>
+        <div class="filtros-fecha">
+          <button class="activo">Próximos</button><button>Finalizados</button><button>Todos</button>
+        </div>
+        <div class="lista-partidos">
+          <article>
+            <p>HOY · 19:00 · COLISEO DEL CARIBE</p>
+            <div>
+              <span><b>TG</b> Tigres</span><strong>VS</strong><span>Titanes <b>TT</b></span>
+            </div>
+            <button class="boton-secundario" data-abrir="resultado">Registrar resultado</button>
+          </article>
+          <article>
+            <p>MAÑANA · 17:30 · CANCHA 2</p>
+            <div>
+              <span><b>CH</b> Caribe Hoopers</span><strong>VS</strong
+              ><span>Fénix B.C. <b>FB</b></span>
+            </div>
+            <button class="boton-secundario">Editar partido</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="vista" id="estadisticas">
+        <div class="cabecera-vista">
+          <div>
+            <h2>Estadísticas</h2>
+            <p>Actualiza los datos de rendimiento de cada jugador.</p>
+          </div>
+          <button class="boton-principal" data-abrir="estadistica">+ Registrar estadística</button>
+        </div>
+        <article class="panel tabla-panel">
+          <table>
+            <thead>
+              <tr>
+                <th>Jugador</th>
+                <th>PTS</th>
+                <th>REB</th>
+                <th>AST</th>
+                <th>ROB</th>
+                <th>TAP</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="tabla-estadisticas"></tbody>
+          </table>
+        </article>
+      </section>
+    </main>
+
+    <dialog id="ventana-formulario">
+      <form method="dialog" id="formulario">
+        <div class="encabezado-ventana">
+          <div>
+            <p id="tipo-formulario" class="miga">NUEVO REGISTRO</p>
+            <h2 id="titulo-formulario">Agregar jugador</h2>
+          </div>
+          <button class="boton-icono" value="cancel" aria-label="Cerrar">×</button>
+        </div>
+        <div id="campos-formulario" class="campos-formulario"></div>
+        <div class="acciones-formulario">
+          <button class="boton-secundario" value="cancel">Cancelar</button
+          ><button class="boton-principal" id="guardar" value="default">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+    <div class="mensaje-flotante" role="status" aria-live="polite"></div>
+    <script src="admin.js"></script>
+  </body>
+</html>
