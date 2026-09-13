@@ -13,14 +13,30 @@ function statusLabel(status) {
   return status
 }
 
-function MatchTeamRow({ team, match, teams, onPickWinner, canEdit, isMyTeam }) {
+function MatchTeamRow({ team, match, teams, onPickWinner, onScoreChange, canEdit, isMyTeam }) {
   const isWinner = match.winner_id && match.winner_id === team?.id
   const isLoser = match.status === 'jugado' && match.winner_id && team && match.winner_id !== team.id
-  const score = team && team.id === match.team1_id ? match.team1_score : match.team2_score
+  const isLive = match.status === 'en_juego'
   const t1 = teamById(teams, match.team1_id)
   const t2 = teamById(teams, match.team2_id)
-  const isLive = match.status === 'en_juego'
   const bothDefined = t1 && t2
+
+  const scoreField = team && team.id === match.team1_id ? 'team1_score' : 'team2_score'
+  const rawScore = team ? match[scoreField] : null
+  const hasScore = rawScore !== null && rawScore !== undefined && rawScore !== '' && !Number.isNaN(Number(rawScore))
+
+  // Leading team in live matches (only when both have scores and no winner yet)
+  const otherField = scoreField === 'team1_score' ? 'team2_score' : 'team1_score'
+  const myNum = hasScore ? Number(rawScore) : null
+  const otherNum = match[otherField] !== null && match[otherField] !== undefined && match[otherField] !== ''
+    ? Number(match[otherField])
+    : null
+  const isLeading =
+    !match.winner_id &&
+    match.status !== 'jugado' &&
+    myNum !== null &&
+    otherNum !== null &&
+    myNum > otherNum
 
   if (!team) {
     return (
@@ -33,13 +49,30 @@ function MatchTeamRow({ team, match, teams, onPickWinner, canEdit, isMyTeam }) {
 
   return (
     <div
-      className={['match-team', isWinner && 'is-winner', isLoser && 'is-loser', isMyTeam && 'is-me', isLive && 'is-live']
+      className={['match-team', isWinner && 'is-winner', isLoser && 'is-loser', isMyTeam && 'is-me', isLive && 'is-live', isLeading && 'is-leading']
         .filter(Boolean)
         .join(' ')}
     >
       <TeamBadge team={team} size="sm" />
       <span className="match-team__name" title={team.name}>{team.name}</span>
-      {score != null && <span className="match-team__score">{score}</span>}
+      {canEdit && bothDefined ? (
+        <input
+          type="number"
+          min="0"
+          className="match-team__score-input"
+          defaultValue={hasScore ? rawScore : ''}
+          aria-label={`Puntos de ${team.name}`}
+          onBlur={(e) => {
+            const v = e.target.value === '' ? null : Math.max(0, parseInt(e.target.value, 10) || 0)
+            if (v !== rawScore) onScoreChange(match.id, scoreField, v)
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur()
+          }}
+        />
+      ) : (
+        <span className="match-team__score">{hasScore ? rawScore : '—'}</span>
+      )}
       {canEdit && bothDefined && (
         <button
           type="button"
@@ -54,7 +87,7 @@ function MatchTeamRow({ team, match, teams, onPickWinner, canEdit, isMyTeam }) {
   )
 }
 
-function MatchBox({ match, teams, myTeamId, onPickWinner, canEdit, highlight }) {
+function MatchBox({ match, teams, myTeamId, onPickWinner, onScoreChange, canEdit, highlight }) {
   const t1 = teamById(teams, match.team1_id)
   const t2 = teamById(teams, match.team2_id)
   return (
@@ -69,13 +102,29 @@ function MatchBox({ match, teams, myTeamId, onPickWinner, canEdit, highlight }) 
         <span className={`match-box__status status-${match.status || 'pendiente'}`}>{statusLabel(match.status)}</span>
       </div>
       <div className="match-box__divider" aria-hidden="true" />
-      <MatchTeamRow team={t1} match={match} teams={teams} onPickWinner={onPickWinner} canEdit={canEdit} isMyTeam={t1?.id === myTeamId} />
-      <MatchTeamRow team={t2} match={match} teams={teams} onPickWinner={onPickWinner} canEdit={canEdit} isMyTeam={t2?.id === myTeamId} />
+      <MatchTeamRow
+        team={t1}
+        match={match}
+        teams={teams}
+        onPickWinner={onPickWinner}
+        onScoreChange={onScoreChange}
+        canEdit={canEdit}
+        isMyTeam={t1?.id === myTeamId}
+      />
+      <MatchTeamRow
+        team={t2}
+        match={match}
+        teams={teams}
+        onPickWinner={onPickWinner}
+        onScoreChange={onScoreChange}
+        canEdit={canEdit}
+        isMyTeam={t2?.id === myTeamId}
+      />
     </div>
   )
 }
 
-export default function Bracket({ matches, teams, tournamentName, myTeamId, onPickWinner, canEdit }) {
+export default function Bracket({ matches, teams, tournamentName, myTeamId, onPickWinner, onScoreChange, canEdit }) {
   const outerRef = useRef(null)
   const svgRef = useRef(null)
   const boxRefs = useRef({})
@@ -246,6 +295,7 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
                         teams={teams}
                         myTeamId={myTeamId}
                         onPickWinner={onPickWinner}
+                        onScoreChange={onScoreChange}
                         canEdit={canEdit}
                         highlight={liveMatch?.id === m.id}
                         matchRef={(el) => {
@@ -278,6 +328,7 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
                 teams={teams}
                 myTeamId={myTeamId}
                 onPickWinner={onPickWinner}
+                onScoreChange={onScoreChange}
                 canEdit={canEdit}
                 highlight={liveMatch?.id === finalMatch.id}
                 matchRef={(el) => {
@@ -303,6 +354,7 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId, onPi
                         teams={teams}
                         myTeamId={myTeamId}
                         onPickWinner={onPickWinner}
+                        onScoreChange={onScoreChange}
                         canEdit={canEdit}
                         highlight={liveMatch?.id === m.id}
                         matchRef={(el) => {

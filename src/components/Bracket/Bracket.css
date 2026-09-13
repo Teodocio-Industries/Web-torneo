@@ -340,6 +340,37 @@
   text-align: right;
 }
 
+.match-team__score-input {
+  width: 44px;
+  font-family: Oswald, sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--naranja);
+  background: #0a0e14;
+  border: 1px solid var(--linea);
+  border-radius: 5px;
+  padding: 3px 4px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  -moz-appearance: textfield;
+  appearance: textfield;
+  margin-left: auto;
+}
+
+.match-team__score-input::-webkit-outer-spin-button,
+.match-team__score-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.match-team__score-input:focus {
+  border-color: var(--naranja);
+  box-shadow: 0 0 0 2px rgba(255, 107, 33, 0.25);
+}
+
+.match-team__score-input:hover { border-color: var(--naranja); }
+
 .match-team__empty {
   color: var(--texto-tenue);
   font-style: italic;
@@ -411,6 +442,28 @@
 
 .match-team.is-live {
   background: rgba(255, 107, 33, 0.04);
+}
+
+.match-team.is-leading {
+  background: rgba(55, 194, 109, 0.08);
+  position: relative;
+}
+
+.match-team.is-leading .match-team__name,
+.match-team.is-leading .match-team__score,
+.match-team.is-leading .match-team__score-input {
+  color: var(--verde);
+}
+
+.match-team.is-leading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  background: var(--verde);
+  border-radius: 2px;
 }
 
 .bracket-connectors {
