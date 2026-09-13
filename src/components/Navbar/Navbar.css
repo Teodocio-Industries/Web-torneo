@@ -1,23 +1,39 @@
 .barra-superior {
-  height: 58px;
+  height: 62px;
   border-bottom: 1px solid var(--linea);
   display: flex;
   align-items: center;
-  padding: 0 22px;
+  padding: 0 24px;
   position: sticky;
   top: 0;
-  background: #090d13;
-  z-index: 10;
+  background: rgba(9, 13, 19, 0.92);
+  backdrop-filter: blur(8px);
+  z-index: 50;
   gap: 24px;
 }
 
 .marca {
-  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
   color: #f0f0f0;
   text-decoration: none;
   font-weight: 700;
   font-family: Oswald, sans-serif;
   white-space: nowrap;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+}
+
+.marca__ball {
+  display: grid;
+  place-items: center;
+  filter: drop-shadow(0 2px 6px rgba(255, 107, 33, 0.45));
+  transition: transform 0.4s ease;
+}
+
+.marca:hover .marca__ball {
+  transform: rotate(360deg);
 }
 
 .navegacion {
@@ -29,16 +45,31 @@
 }
 
 .navegacion a {
+  position: relative;
   color: var(--texto-tenue);
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
+  padding: 4px 0;
+  transition: color 0.18s ease;
 }
 
-.navegacion a.active,
-.navegacion a:hover {
-  color: var(--naranja);
+.navegacion a::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 0;
+  height: 2px;
+  background: var(--naranja);
+  transition: all 0.2s ease;
+  transform: translateX(-50%);
 }
+
+.navegacion a:hover { color: var(--naranja); }
+.navegacion a:hover::after { width: 100%; }
+.navegacion a.active { color: var(--naranja); }
+.navegacion a.active::after { width: 100%; }
 
 .sesion {
   display: flex;
@@ -64,11 +95,23 @@
   padding: 2px 8px;
   border-radius: 999px;
 }
+
 .rol-admin { background: var(--naranja); color: #1a0e05; }
 .rol-jugador { background: var(--verde); color: #04220f; }
 .rol-usuario { background: #333c48; color: var(--texto); }
 
 @media (max-width: 720px) {
-  .barra-superior { flex-wrap: wrap; height: auto; padding: 10px 14px; gap: 10px; }
-  .navegacion { gap: 14px; order: 3; width: 100%; }
+  .barra-superior {
+    flex-wrap: wrap;
+    height: auto;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+  .navegacion {
+    gap: 14px;
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+  .marca__name { display: none; }
 }

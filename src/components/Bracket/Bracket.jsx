@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import TeamBadge from '../TeamBadge/TeamBadge'
 import './Bracket.css'
 
@@ -6,33 +6,76 @@ function teamById(teams, id) {
   return teams.find((t) => t.id === id) || null
 }
 
-function MatchTeamRow({ team, match, teams, myTeamId }) {
-  if (!team) return <div className="match-team match-team--empty">Por definir</div>
-  const isWinner = match.winner_id && match.winner_id === team.id
-  const isLoser = match.status === 'jugado' && match.winner_id && match.winner_id !== team.id
-  const isMe = myTeamId && team.id === myTeamId
-  const score = team.id === match.team1_id ? match.team1_score : match.team2_score
+function statusLabel(status) {
+  if (!status) return 'Por jugar'
+  if (status === 'jugado') return 'Final'
+  if (status === 'en_juego') return 'En vivo'
+  return status
+}
+
+function MatchTeamRow({ team, match, teams, onPickWinner, canEdit, isMyTeam }) {
+  const isWinner = match.winner_id && match.winner_id === team?.id
+  const isLoser = match.status === 'jugado' && match.winner_id && team && match.winner_id !== team.id
+  const score = team && team.id === match.team1_id ? match.team1_score : match.team2_score
+  const t1 = teamById(teams, match.team1_id)
+  const t2 = teamById(teams, match.team2_id)
+  const isLive = match.status === 'en_juego'
+  const bothDefined = t1 && t2
+
+  if (!team) {
+    return (
+      <div className="match-team match-team--empty">
+        <span className="match-team__placeholder-dot" aria-hidden="true" />
+        <span className="match-team__empty">Por definir</span>
+      </div>
+    )
+  }
+
   return (
-    <div className={['match-team', isWinner && 'is-winner', isLoser && 'is-loser', isMe && 'is-me'].filter(Boolean).join(' ')}>
+    <div
+      className={['match-team', isWinner && 'is-winner', isLoser && 'is-loser', isMyTeam && 'is-me', isLive && 'is-live']
+        .filter(Boolean)
+        .join(' ')}
+    >
       <TeamBadge team={team} size="sm" />
-      <span className="match-team__name">{team.name}</span>
+      <span className="match-team__name" title={team.name}>{team.name}</span>
       {score != null && <span className="match-team__score">{score}</span>}
+      {canEdit && bothDefined && (
+        <button
+          type="button"
+          className={`match-team__pick ${isWinner ? 'is-on' : ''}`}
+          title="Marcar como ganador"
+          onClick={() => onPickWinner(match.id, team.id)}
+        >
+          ✓
+        </button>
+      )}
     </div>
   )
 }
 
-function MatchBox({ match, teams, myTeamId, matchRef }) {
+function MatchBox({ match, teams, myTeamId, onPickWinner, canEdit, highlight }) {
   const t1 = teamById(teams, match.team1_id)
   const t2 = teamById(teams, match.team2_id)
   return (
-    <div className="match-box" ref={matchRef} data-match={match.id}>
-      <MatchTeamRow team={t1} match={match} teams={teams} myTeamId={myTeamId} />
-      <MatchTeamRow team={t2} match={match} teams={teams} myTeamId={myTeamId} />
+    <div
+      className={['match-box', highlight && 'is-highlight', match.status === 'en_juego' && 'is-live', match.status === 'jugado' && 'is-done']
+        .filter(Boolean)
+        .join(' ')}
+      data-match={match.id}
+    >
+      <div className="match-box__head">
+        <span className="match-box__round">{match.round_name}</span>
+        <span className={`match-box__status status-${match.status || 'pendiente'}`}>{statusLabel(match.status)}</span>
+      </div>
+      <div className="match-box__divider" aria-hidden="true" />
+      <MatchTeamRow team={t1} match={match} teams={teams} onPickWinner={onPickWinner} canEdit={canEdit} isMyTeam={t1?.id === myTeamId} />
+      <MatchTeamRow team={t2} match={match} teams={teams} onPickWinner={onPickWinner} canEdit={canEdit} isMyTeam={t2?.id === myTeamId} />
     </div>
   )
 }
 
-export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
+export default function Bracket({ matches, teams, tournamentName, myTeamId, onPickWinner, canEdit }) {
   const outerRef = useRef(null)
   const svgRef = useRef(null)
   const boxRefs = useRef({})
@@ -41,9 +84,13 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
   const finalMatch = matches.find((m) => m.side === 'final')
   const sides = ['izquierda', 'derecha']
 
-  function roundsForSide(side) {
-    return [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
-  }
+  const liveMatch = useMemo(
+    () => matches.find((m) => m.status === 'en_juego') || null,
+    [matches],
+  )
+
+  const roundsForSide = (side) =>
+    [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
 
   function drawConnectors() {
     const outer = outerRef.current
@@ -87,7 +134,9 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
           const x1 = mirrored ? a.left : a.right
           const x2 = mirrored ? b.right : b.left
           const midX = (x1 + x2) / 2
-          paths += `<path d="M ${x1} ${a.midY} H ${midX} V ${b.midY} H ${x2}" />`
+          paths += `<path class="bracket-line" d="M ${x1} ${a.midY} H ${midX} V ${b.midY} H ${x2 - 2}" />`
+          paths += `<circle class="bracket-line-dot" cx="${x1}" cy="${a.midY}" r="2.5" />`
+          paths += `<circle class="bracket-line-dot" cx="${midX}" cy="${b.midY}" r="2.5" />`
         })
       })
       const lastR = rounds[rounds.length - 1]
@@ -101,7 +150,9 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
           const x1 = mirrored ? a.left : a.right
           const x2 = mirrored ? b.right : b.left
           const midX = (x1 + x2) / 2
-          paths += `<path d="M ${x1} ${a.midY} H ${midX} V ${b.midY} H ${x2}" />`
+          paths += `<path class="bracket-line bracket-line--final" d="M ${x1} ${a.midY} H ${midX} V ${b.midY} H ${x2 - 2}" />`
+          paths += `<circle class="bracket-line-dot" cx="${x1}" cy="${a.midY}" r="2.5" />`
+          paths += `<circle class="bracket-line-dot" cx="${midX}" cy="${b.midY}" r="2.5" />`
         }
       }
     })
@@ -116,11 +167,16 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
 
   useEffect(() => {
     const raf = requestAnimationFrame(drawConnectors)
-    function onResize() { drawConnectors() }
+    function onResize() {
+      drawConnectors()
+    }
     window.addEventListener('resize', onResize)
+    const ro = outerRef.current ? new ResizeObserver(drawConnectors) : null
+    if (ro && outerRef.current) ro.observe(outerRef.current)
     return () => {
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
+      if (ro) ro.disconnect()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   })
@@ -129,47 +185,154 @@ export default function Bracket({ matches, teams, tournamentName, myTeamId }) {
     return <div className="empty">Este torneo aún no tiene un cuadro generado.</div>
   }
 
+  const liveT1 = liveMatch ? teamById(teams, liveMatch.team1_id) : null
+  const liveT2 = liveMatch ? teamById(teams, liveMatch.team2_id) : null
+
   return (
     <div className="bracket-hero">
-      <div className="bracket-hero__head">
-        <p className="eyebrow">Así quedan los cruces</p>
-        <h2>{tournamentName}</h2>
+      <div className="bracket-live-report">
+        <div className="bracket-live-report__title">
+          <span className="bracket-live-report__dot" />
+          LIVE REPORT
+        </div>
+        <div className="bracket-live-report__sub">{tournamentName || 'Cuadro de cruces'}</div>
+        {liveMatch && liveT1 && liveT2 ? (
+          <div className="bracket-live-report__score">
+            <div className="bracket-live-report__team">
+              <TeamBadge team={liveT1} size="sm" />
+              <span className="bracket-live-report__name">{liveT1.name}</span>
+            </div>
+            <div className="bracket-live-report__numbers">
+              <span className="bracket-live-report__n">{liveMatch.team1_score ?? 0}</span>
+              <span className="bracket-live-report__sep">·</span>
+              <span className="bracket-live-report__n">{liveMatch.team2_score ?? 0}</span>
+            </div>
+            <div className="bracket-live-report__team">
+              <TeamBadge team={liveT2} size="sm" />
+              <span className="bracket-live-report__name">{liveT2.name}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="bracket-live-report__score bracket-live-report__score--idle">
+            <span className="bracket-live-report__team bracket-live-report__team--idle">
+              <span className="bracket-live-report__name">—</span>
+            </span>
+            <div className="bracket-live-report__numbers">
+              <span className="bracket-live-report__n">—</span>
+              <span className="bracket-live-report__sep">·</span>
+              <span className="bracket-live-report__n">—</span>
+            </div>
+            <span className="bracket-live-report__team bracket-live-report__team--idle">
+              <span className="bracket-live-report__name">—</span>
+            </span>
+          </div>
+        )}
       </div>
+
       <div className="bracket-scroll">
         <div className="bracket-outer" ref={outerRef}>
-          {sides.map((side) => (
-            <div className={`bracket-side bracket-side--${side}`} key={side}>
-              {roundsForSide(side).map((r) => {
-                const ms = matches.filter((m) => m.side === side && m.round_number === r).sort((a, b) => a.match_index - b.match_index)
-                return (
-                  <div className="bracket-round" key={r}>
-                    {ms.map((m) => (
+          <div className="bracket-side bracket-side--izquierda">
+            {roundsForSide('izquierda').map((r) => {
+              const ms = matches
+                .filter((m) => m.side === 'izquierda' && m.round_number === r)
+                .sort((a, b) => a.match_index - b.match_index)
+              return (
+                <div className="bracket-round" key={`izq-${r}`}>
+                  <span className="bracket-round__label">{ms[0]?.round_name}</span>
+                  {ms.map((m, i) => (
+                    <div className="bracket-round__slot" key={m.id}>
                       <MatchBox
-                        key={m.id}
                         match={m}
                         teams={teams}
                         myTeamId={myTeamId}
-                        matchRef={(el) => { if (el) boxRefs.current[m.id] = el }}
+                        onPickWinner={onPickWinner}
+                        canEdit={canEdit}
+                        highlight={liveMatch?.id === m.id}
+                        matchRef={(el) => {
+                          if (el) boxRefs.current[m.id] = el
+                        }}
                       />
-                    ))}
-                  </div>
-                )
-              })}
+                      {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="bracket-center">
+            <div className="bracket-center__ball" aria-hidden="true">
+              <svg viewBox="0 0 64 64" width="64" height="64">
+                <circle cx="32" cy="32" r="30" fill="#ff6b21" />
+                <path d="M32 2 C 18 14 18 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                <path d="M32 2 C 46 14 46 50 32 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                <path d="M2 32 H 62" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                <path d="M10 14 C 22 22 42 22 54 14" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+                <path d="M10 50 C 22 42 42 42 54 50" stroke="#0c1018" strokeWidth="2.5" fill="none" />
+              </svg>
             </div>
-          ))}
-          <div className="final-block">
-            <div className="final-block__trophy">🏆</div>
-            <div className="final-block__label">FINAL</div>
+            <span className="bracket-center__label">{finalMatch ? 'FINAL' : 'CUADRO'}</span>
             {finalMatch && (
               <MatchBox
                 match={finalMatch}
                 teams={teams}
                 myTeamId={myTeamId}
-                matchRef={(el) => { if (el) boxRefs.current[finalMatch.id] = el }}
+                onPickWinner={onPickWinner}
+                canEdit={canEdit}
+                highlight={liveMatch?.id === finalMatch.id}
+                matchRef={(el) => {
+                  if (el) boxRefs.current[finalMatch.id] = el
+                }}
               />
             )}
+            <div className="bracket-center__trophy" aria-hidden="true">🏆</div>
           </div>
+
+          <div className="bracket-side bracket-side--derecha">
+            {roundsForSide('derecha').map((r) => {
+              const ms = matches
+                .filter((m) => m.side === 'derecha' && m.round_number === r)
+                .sort((a, b) => a.match_index - b.match_index)
+              return (
+                <div className="bracket-round" key={`der-${r}`}>
+                  <span className="bracket-round__label">{ms[0]?.round_name}</span>
+                  {ms.map((m, i) => (
+                    <div className="bracket-round__slot" key={m.id}>
+                      <MatchBox
+                        match={m}
+                        teams={teams}
+                        myTeamId={myTeamId}
+                        onPickWinner={onPickWinner}
+                        canEdit={canEdit}
+                        highlight={liveMatch?.id === m.id}
+                        matchRef={(el) => {
+                          if (el) boxRefs.current[m.id] = el
+                        }}
+                      />
+                      {i < ms.length - 1 && <span className="bracket-round__sep" aria-hidden="true" />}
+                    </div>
+                  ))}
+                </div>
+              )
+            })}
+          </div>
+
           <svg className="bracket-connectors" ref={svgRef} />
+        </div>
+      </div>
+
+      <div className="bracket-footer">
+        <p className="eyebrow bracket-footer__title">YOUR TOURNAMENT LEAGUE</p>
+        <p className="bracket-footer__text">
+          Sigue cada cruce, cada resultado y cada campeón de tu torneo. Marca a tu equipo favorito y
+          entérate primero de quién avanza en el cuadro de eliminación directa.
+        </p>
+        <div className="bracket-footer__sponsors">
+          <span className="sponsor-dot" />
+          <span className="sponsor-dot" />
+          <span className="sponsor-dot" />
+          <span className="sponsor-dot" />
+          <span className="sponsor-dot" />
         </div>
       </div>
     </div>

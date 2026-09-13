@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import Bracket from '../../components/Bracket/Bracket'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../components/Toast/Toast'
+import { computeNextSlot, findMatch } from '../../lib/bracket'
 import './Torneos.css'
 
 export default function Torneos() {
-  const { myPlayers } = useAuth()
+  const { myPlayers, isAdmin } = useAuth()
+  const toast = useToast()
   const [tournaments, setTournaments] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [tab, setTab] = useState('bracket')
@@ -14,6 +17,7 @@ export default function Torneos() {
   const [matches, setMatches] = useState([])
   const [standings, setStandings] = useState([])
   const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('todos')
 
   useEffect(() => {
     async function loadTournaments() {
@@ -44,6 +48,88 @@ export default function Torneos() {
   const myTeamId = myPlayers.find((mp) => mp.tournament_id === selectedId)?.team_id || null
   const groups = [...new Set(standings.map((s) => s.group_name))]
 
+  const matchesFiltered = useMemo(() => {
+    if (statusFilter === 'todos') return matches
+    return matches.filter((m) => (m.status || 'pendiente') === statusFilter)
+  }, [matches, statusFilter])
+
+  const stats = useMemo(() => {
+    const total = matches.length
+    const played = matches.filter((m) => m.status === 'jugado').length
+    const live = matches.filter((m) => m.status === 'en_juego').length
+    return { total, played, live, pending: total - played - live }
+  }, [matches])
+
+  async function handlePickWinner(matchId, winnerId) {
+    if (!isAdmin) {
+      toast('Solo el administrador puede registrar ganadores', 'err')
+      return
+    }
+    const match = matches.find((m) => m.id === matchId)
+    if (!match || !winnerId) return
+
+    // 1) Persistir ganador y score del cruce actual
+    const loserId = match.team1_id === winnerId ? match.team2_id : match.team1_id
+    const scoreWinner = 1
+    const scoreLoser = 0
+    const score1 = match.team1_id === winnerId ? scoreWinner : scoreLoser
+    const score2 = match.team2_id === winnerId ? scoreWinner : scoreLoser
+    const isFinal = match.round_name === 'Final'
+
+    // Optimistic local update so the UI feels instant
+    const next = isFinal ? null : computeNextSlot(matches, match)
+    const nextMatch = next ? findMatch(matches, next.round_number, next.side, next.match_index) : null
+    let optimistic = matches.map((m) =>
+      m.id === matchId
+        ? { ...m, winner_id: winnerId, team1_score: score1, team2_score: score2, status: 'jugado' }
+        : m,
+    )
+    if (next && nextMatch) {
+      optimistic = optimistic.map((m) =>
+        m.id === nextMatch.id ? { ...m, [next.slotField]: winnerId } : m,
+      )
+    }
+    setMatches(optimistic)
+
+    const { error } = await supabase
+      .from('bracket_matches')
+      .update({ winner_id: winnerId, team1_score: score1, team2_score: score2, status: 'jugado' })
+      .eq('id', matchId)
+    if (error) {
+      toast('No se pudo guardar el resultado: ' + error.message, 'err')
+      return
+    }
+
+    // 2) Avanzar el ganador al siguiente slot (o coronarlo si es la Final)
+    if (isFinal) {
+      await supabase.from('teams').update({ status: 'campeon' }).eq('id', winnerId)
+      if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
+      toast(`🏆 ${teamName(teams, winnerId)} es el campeón`, 'ok')
+    } else if (next && nextMatch) {
+      const { error: advErr } = await supabase
+        .from('bracket_matches')
+        .update({ [next.slotField]: winnerId })
+        .eq('id', nextMatch.id)
+      if (advErr) {
+        toast('No se pudo avanzar al siguiente cruce: ' + advErr.message, 'err')
+        return
+      }
+      await supabase.from('teams').update({ status: 'avanzo' }).eq('id', winnerId)
+      if (loserId) await supabase.from('teams').update({ status: 'eliminado' }).eq('id', loserId)
+      toast(`✅ ${teamName(teams, winnerId)} avanza a ${nextMatch.round_name}`, 'ok')
+    }
+
+    // 3) Refrescar desde Supabase para asegurar consistencia total
+    const [{ data: matchesRes }] = await Promise.all([
+      supabase.from('bracket_matches').select('*').eq('tournament_id', selectedId).order('round_number'),
+    ])
+    if (matchesRes) setMatches(matchesRes)
+  }
+
+  function teamName(list, id) {
+    return list.find((t) => t.id === id)?.name || 'El equipo'
+  }
+
   if (loading) return <div className="loading-screen">Cargando torneos…</div>
 
   return (
@@ -73,13 +159,52 @@ export default function Torneos() {
             ))}
           </div>
 
+          <div className="torneo-stats">
+            <div className="torneo-stats__item">
+              <span className="torneo-stats__n">{stats.total}</span>
+              <span className="torneo-stats__label">Cruces</span>
+            </div>
+            <div className="torneo-stats__item">
+              <span className="torneo-stats__n torneo-stats__n--live">{stats.live}</span>
+              <span className="torneo-stats__label">En vivo</span>
+            </div>
+            <div className="torneo-stats__item">
+              <span className="torneo-stats__n torneo-stats__n--done">{stats.played}</span>
+              <span className="torneo-stats__label">Jugados</span>
+            </div>
+            <div className="torneo-stats__item">
+              <span className="torneo-stats__n torneo-stats__n--pending">{stats.pending}</span>
+              <span className="torneo-stats__label">Pendientes</span>
+            </div>
+          </div>
+
           <div className="torneo-tabs">
             <button className={tab === 'bracket' ? 'is-active' : ''} onClick={() => setTab('bracket')}>Cuadro de cruces</button>
             <button className={tab === 'tabla' ? 'is-active' : ''} onClick={() => setTab('tabla')}>Tabla de posiciones</button>
           </div>
 
           {tab === 'bracket' && (
-            <Bracket matches={matches} teams={teams} tournamentName={selected?.name} myTeamId={myTeamId} />
+            <>
+              <div className="bracket-filters">
+                {['todos', 'en_juego', 'jugado', 'pendiente'].map((f) => (
+                  <button
+                    key={f}
+                    className={`bracket-filters__btn ${statusFilter === f ? 'is-active' : ''}`}
+                    onClick={() => setStatusFilter(f)}
+                  >
+                    {f === 'todos' ? 'Todos' : f === 'en_juego' ? 'En vivo' : f === 'jugado' ? 'Finalizados' : 'Pendientes'}
+                  </button>
+                ))}
+              </div>
+              <Bracket
+                matches={matchesFiltered}
+                teams={teams}
+                tournamentName={selected?.name}
+                myTeamId={myTeamId}
+                onPickWinner={handlePickWinner}
+                canEdit={isAdmin}
+              />
+            </>
           )}
 
           {tab === 'tabla' && (
