@@ -1,7 +1,15 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TeamBadge from '../TeamBadge/TeamBadge'
 import { computeNextSlot, findMatch } from '../../lib/bracket'
 import './Bracket.css'
+
+// ----- geometría del cuadro, en porcentaje del marco (0-100) -----
+const SIDE_W = 42          // ancho reservado para cada lado
+const TOP_RESERVED = 9     // franja superior para las etiquetas de ronda
+const USABLE_H = 100 - TOP_RESERVED
+const COL_PAD_RATIO = 0.07 // margen interno de cada columna
+const STUB = 1.6           // largo del tramo horizontal corto de cada conector
+const FINAL_Y_RATIO = 0.16 // la Final va bien arriba, dejando todo el resto del espacio para el campeón
 
 function teamById(teams, id) {
   return teams.find((t) => t.id === id) || null
@@ -22,7 +30,55 @@ function BallIcon() {
   )
 }
 
-function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, boxRef }) {
+// Calcula, para cada partido, su columna (left/width en %) y el centro
+// vertical de su "slot" (en % de la altura total del marco).
+function computeLayout(matches) {
+  const layout = {} // matchId -> { left, width, edgeX, centerY, side }
+  const sides = ['izquierda', 'derecha']
+
+  sides.forEach((side) => {
+    const roundNums = [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
+    const R = roundNums.length
+    roundNums.forEach((rn, i) => {
+      const roundMatches = matches.filter((m) => m.side === side && m.round_number === rn).sort((a, b) => a.match_index - b.match_index)
+      const N = roundMatches.length
+
+      let colLeft, colRight
+      if (side === 'izquierda') {
+        colLeft = (i / R) * SIDE_W
+        colRight = ((i + 1) / R) * SIDE_W
+      } else {
+        colRight = 100 - (i / R) * SIDE_W
+        colLeft = 100 - ((i + 1) / R) * SIDE_W
+      }
+      const colWidth = colRight - colLeft
+      const pad = colWidth * COL_PAD_RATIO
+      const left = colLeft + pad
+      const width = colWidth - pad * 2
+      const edgeX = side === 'izquierda' ? colRight - pad : colLeft + pad
+
+      roundMatches.forEach((m, idx) => {
+        const centerY = TOP_RESERVED + ((idx + 0.5) / N) * USABLE_H
+        layout[m.id] = { left, width, edgeX, centerY, side, colLeft, colRight, roundIndex: i, roundCount: R }
+      })
+    })
+  })
+
+  const finalMatch = matches.find((m) => m.side === 'final')
+  if (finalMatch) {
+    const colLeft = SIDE_W
+    const colRight = 100 - SIDE_W
+    const pad = (colRight - colLeft) * 0.14
+    layout[finalMatch.id] = {
+      left: colLeft + pad, width: (colRight - colLeft) - pad * 2,
+      edgeX: null, centerY: TOP_RESERVED + FINAL_Y_RATIO * USABLE_H, side: 'final', colLeft, colRight,
+    }
+  }
+
+  return layout
+}
+
+function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, style }) {
   const status = uiStatus(match)
   const score = which === 'team1' ? match.team1_score : match.team2_score
   const isWinner = status === 'jugado' && match.winner_id === team?.id
@@ -30,14 +86,11 @@ function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, boxRef
   const isMe = myTeamId && team?.id === myTeamId
 
   if (!team) {
-    return <div className="team-box team-box--empty" ref={boxRef}>Por definir</div>
+    return <div className="team-box team-box--empty" style={style}>Por definir</div>
   }
 
   return (
-    <div
-      className={['team-box', isWinner && 'is-winner', isLoser && 'is-loser', isMe && 'is-me'].filter(Boolean).join(' ')}
-      ref={boxRef}
-    >
+    <div className={['team-box', isWinner && 'is-winner', isLoser && 'is-loser', isMe && 'is-me'].filter(Boolean).join(' ')} style={style}>
       <span className="team-box__badge"><TeamBadge team={team} size="sm" /></span>
       <span className="team-box__name">{team.name}</span>
       {editable && status !== 'jugado' ? (
@@ -54,147 +107,72 @@ function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, boxRef
   )
 }
 
-function MatchPair({ match, teams, myTeamId, editable, onScoreChange, onFinalize, onReopen, box1Ref, box2Ref }) {
-  const t1 = teamById(teams, match.team1_id)
-  const t2 = teamById(teams, match.team2_id)
-  const status = uiStatus(match)
-  const canFinalize = editable && status !== 'jugado' && t1 && t2 &&
-    match.team1_score != null && match.team2_score != null && match.team1_score !== match.team2_score
-
-  return (
-    <div className="match-pair" data-match={match.id}>
-      <TeamBox team={t1} match={match} which="team1" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange} boxRef={box1Ref} />
-      <span className="match-pair__vs">VS</span>
-      <TeamBox team={t2} match={match} which="team2" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange} boxRef={box2Ref} />
-      {canFinalize && (
-        <button
-          className="match-pair__finalize"
-          onClick={() => onFinalize(match, match.team1_score > match.team2_score ? match.team1_id : match.team2_id)}
-        >
-          Finalizar
-        </button>
-      )}
-      {editable && status === 'jugado' && (
-        <button className="match-pair__reopen" onClick={() => onReopen(match)}>↺ Reabrir</button>
-      )}
-    </div>
-  )
-}
-
 export default function Bracket({
   matches, teams, tournamentName, myTeamId,
   editable = false, onScoreChange, onFinalize, onReopen,
 }) {
-  const outerRef = useRef(null)
-  const svgRef = useRef(null)
-  const boxRefs = useRef({}) // matchId -> { team1: el, team2: el }
-  const [, forceTick] = useState(0)
-
-  const finalMatch = matches.find((m) => m.side === 'final')
-  const liveMatch = matches.find((m) => uiStatus(m) === 'en_juego')
-  const sides = ['izquierda', 'derecha']
-
-  function roundsForSide(side) {
-    return [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
-  }
-
-  function getBox(matchId, which) {
-    return boxRefs.current[matchId]?.[which] || null
-  }
-  function setBox(matchId, which, el) {
-    if (!el) return
-    if (!boxRefs.current[matchId]) boxRefs.current[matchId] = {}
-    boxRefs.current[matchId][which] = el
-  }
-
-  function drawConnectors() {
-    const outer = outerRef.current
-    const svg = svgRef.current
-    if (!outer || !svg) return
-    const w = outer.scrollWidth
-    const h = outer.scrollHeight
-    svg.setAttribute('width', w)
-    svg.setAttribute('height', h)
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`)
-    const outerRect = outer.getBoundingClientRect()
-
-    function rectOf(el) {
-      const r = el.getBoundingClientRect()
-      return {
-        top: r.top - outerRect.top, bottom: r.bottom - outerRect.top,
-        left: r.left - outerRect.left, right: r.right - outerRect.left,
-        midY: (r.top + r.bottom) / 2 - outerRect.top,
-      }
-    }
-
-    let svgContent = ''
-    sides.forEach((side) => {
-      const mirrored = side === 'derecha'
-      const rounds = roundsForSide(side)
-
-      rounds.forEach((r) => {
-        const ms = matches.filter((m) => m.side === side && m.round_number === r).sort((a, b) => a.match_index - b.match_index)
-
-        ms.forEach((m) => {
-          const t1El = getBox(m.id, 'team1')
-          const t2El = getBox(m.id, 'team2')
-          if (!t1El || !t2El) return
-          const a1 = rectOf(t1El)
-          const a2 = rectOf(t2El)
-          const midY = (a1.midY + a2.midY) / 2
-          const edgeX = mirrored ? a1.left : a1.right
-          const stubX = edgeX + (mirrored ? -14 : 14)
-
-          // conector corto que une las dos cajas del mismo cruce
-          svgContent += `<path class="bracket-line" d="M ${edgeX} ${a1.midY} H ${stubX} V ${a2.midY} H ${edgeX}" />`
-
-          const next = computeNextSlot(matches, m)
-          if (!next) return
-          const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
-          if (!nextMatch) return
-          const nextWhich = next.slotField === 'team1_id' ? 'team1' : 'team2'
-          const nextEl = getBox(nextMatch.id, nextWhich)
-          if (!nextEl) return
-          const b = rectOf(nextEl)
-          const targetX = mirrored ? b.right : b.left
-          const cls = nextMatch === finalMatch ? 'bracket-line bracket-line--final' : 'bracket-line'
-          svgContent += `<path class="${cls}" d="M ${stubX} ${midY} H ${targetX}" />`
-        })
-      })
-    })
-    svg.innerHTML = svgContent
-  }
-
-  useLayoutEffect(() => {
-    boxRefs.current = {}
-    forceTick((t) => t + 1)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matches])
+  const frameRef = useRef(null)
+  const [frameH, setFrameH] = useState(560)
 
   useEffect(() => {
-    let raf1, raf2, timer
-    function schedule() {
-      raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => {
-          drawConnectors()
-          timer = setTimeout(drawConnectors, 100)
-        })
-      })
-    }
-    schedule()
-    function onResize() { drawConnectors() }
-    window.addEventListener('resize', onResize)
-    return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      clearTimeout(timer)
-      window.removeEventListener('resize', onResize)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  })
+    const el = frameRef.current
+    if (!el) return undefined
+    const ro = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect?.height
+      if (h) setFrameH(h)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   if (!matches.length) {
     return <div className="empty">Este torneo aún no tiene un cuadro generado.</div>
+  }
+
+  const layout = computeLayout(matches)
+  const finalMatch = matches.find((m) => m.side === 'final')
+  const liveMatch = matches.find((m) => uiStatus(m) === 'en_juego')
+
+  // separación vertical entre las dos cajas de un mismo cruce, expresada
+  // como % de la altura del marco (así conectores y cajas usan el mismo valor)
+  const GAP_PX = 16
+  const gapPct = (GAP_PX / frameH) * 100
+
+  function boxTop(matchId, which) {
+    const pos = layout[matchId]
+    return which === 'team1' ? pos.centerY - gapPct : pos.centerY + gapPct
+  }
+
+  // ---------- conectores (líneas), calculados con la misma geometría ----------
+  const lines = []
+  ;['izquierda', 'derecha'].forEach((side) => {
+    const mirrored = side === 'derecha'
+    const sideMatches = matches.filter((m) => m.side === side)
+    sideMatches.forEach((m) => {
+      const pos = layout[m.id]
+      const y1 = boxTop(m.id, 'team1')
+      const y2 = boxTop(m.id, 'team2')
+      const stubX = pos.edgeX + (mirrored ? -STUB : STUB)
+
+      // conector corto que une las dos cajas del mismo cruce
+      lines.push({ d: `M ${pos.edgeX} ${y1} H ${stubX} V ${y2} H ${pos.edgeX}`, final: false })
+
+      const next = computeNextSlot(matches, m)
+      if (!next) return
+      const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
+      if (!nextMatch) return
+      const nextPos = layout[nextMatch.id]
+      const nextWhich = next.slotField === 'team1_id' ? 'team1' : 'team2'
+      const targetY = boxTop(nextMatch.id, nextWhich)
+      const targetX = mirrored ? nextPos.left + nextPos.width : nextPos.left
+      const midY = (y1 + y2) / 2
+      const midX = (stubX + targetX) / 2
+      lines.push({ d: `M ${stubX} ${midY} H ${midX} V ${targetY} H ${targetX}`, final: nextMatch === finalMatch })
+    })
+  })
+
+  function labelStyle(pos) {
+    return { left: `${(pos.colLeft + pos.colRight) / 2}%` }
   }
 
   return (
@@ -206,68 +184,102 @@ export default function Bracket({
       </div>
 
       <div className="bracket-frame-scroll">
-        <div className="bracket-frame">
-          <div className="bracket-outer" ref={outerRef}>
-            {sides.map((side) => (
-              <div className={`bracket-side bracket-side--${side}`} key={side}>
-                {roundsForSide(side).map((r) => {
-                  const ms = matches.filter((m) => m.side === side && m.round_number === r).sort((a, b) => a.match_index - b.match_index)
-                  return (
-                    <div className="bracket-round" key={r}>
-                      <span className="bracket-round__label">{ms[0]?.round_name}</span>
-                      {ms.map((m) => (
-                        <MatchPair
-                          key={m.id}
-                          match={m}
-                          teams={teams}
-                          myTeamId={myTeamId}
-                          editable={editable}
-                          onScoreChange={onScoreChange}
-                          onFinalize={onFinalize}
-                          onReopen={onReopen}
-                          box1Ref={(el) => setBox(m.id, 'team1', el)}
-                          box2Ref={(el) => setBox(m.id, 'team2', el)}
-                        />
-                      ))}
-                    </div>
-                  )
-                })}
-              </div>
+        <div className="bracket-frame" ref={frameRef}>
+          <svg className="bracket-connectors" viewBox="0 0 100 100" preserveAspectRatio="none">
+            {lines.map((l, i) => (
+              <path key={i} className={`bracket-line ${l.final ? 'bracket-line--final' : ''}`} d={l.d} vectorEffect="non-scaling-stroke" />
             ))}
+          </svg>
 
-            <div className="bracket-center">
-              <span className="bracket-round__label">Final</span>
-              <div className="bracket-center__final-wrap">
-                {finalMatch && (
-                  <MatchPair
-                    match={finalMatch}
-                    teams={teams}
-                    myTeamId={myTeamId}
-                    editable={editable}
-                    onScoreChange={onScoreChange}
-                    onFinalize={onFinalize}
-                    onReopen={onReopen}
-                    box1Ref={(el) => setBox(finalMatch.id, 'team1', el)}
-                    box2Ref={(el) => setBox(finalMatch.id, 'team2', el)}
-                  />
-                )}
-                <div className="bracket-center__champ-float">
-                  <div className="bracket-center__champ-label">Campeón del torneo</div>
-                  <div className={`bracket-center__champ-box ${finalMatch?.winner_id ? '' : 'bracket-center__champ-box--pending'}`}>
-                    {finalMatch?.winner_id ? (
-                      <>
-                        <span className="bracket-center__trophy">🏆</span>
-                        {teamById(teams, finalMatch.winner_id)?.name}
-                      </>
-                    ) : '¿Quién será?'}
-                  </div>
-                  <div className="bracket-center__ball"><BallIcon /></div>
-                </div>
-              </div>
+          {finalMatch && (
+            <div className="bracket-final-glow" style={{ top: `${layout[finalMatch.id].centerY}%` }} />
+          )}
+
+          {/* etiquetas de ronda (una por cada columna) */}
+          {Object.entries(
+            matches.filter((m) => m.side !== 'final').reduce((acc, m) => {
+              const key = `${m.side}-${m.round_number}`
+              if (!acc[key]) acc[key] = m
+              return acc
+            }, {})
+          ).map(([key, m]) => (
+            <span key={key} className="bracket-round-label" style={labelStyle(layout[m.id])}>{m.round_name}</span>
+          ))}
+          {finalMatch && (
+            <div className="bracket-final-badge" style={{ left: '50%', top: `${boxTop(finalMatch.id, 'team1')}%` }}>
+              <span className="bracket-final-badge__star">★</span> GRAN FINAL <span className="bracket-final-badge__star">★</span>
             </div>
+          )}
 
-            <svg className="bracket-connectors" ref={svgRef} />
-          </div>
+          {/* cajas de cada equipo, para todos los cruces (incluida la Final) */}
+          {matches.map((m) => {
+            const t1 = teamById(teams, m.team1_id)
+            const t2 = teamById(teams, m.team2_id)
+            const pos = layout[m.id]
+            const status = uiStatus(m)
+            const canFinalize = editable && status !== 'jugado' && t1 && t2 &&
+              m.team1_score != null && m.team2_score != null && m.team1_score !== m.team2_score
+
+            return (
+              <div key={m.id}>
+                <TeamBox
+                  team={t1} match={m} which="team1" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
+                  style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${boxTop(m.id, 'team1')}%` }}
+                />
+                <TeamBox
+                  team={t2} match={m} which="team2" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
+                  style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${boxTop(m.id, 'team2')}%` }}
+                />
+                <span className="match-vs" style={{ left: `${pos.left + pos.width / 2}%`, top: `${pos.centerY}%` }}>VS</span>
+                {editable && (canFinalize || status === 'jugado') && (
+                  <div
+                    className="match-controls"
+                    style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${boxTop(m.id, 'team2') + gapPct * 1.6}%`, justifyContent: 'flex-end' }}
+                  >
+                    {canFinalize && (
+                      <button
+                        className="match-controls__finalize"
+                        onClick={() => onFinalize(m, m.team1_score > m.team2_score ? m.team1_id : m.team2_id)}
+                      >
+                        Finalizar
+                      </button>
+                    )}
+                    {status === 'jugado' && (
+                      <button className="match-controls__reopen" onClick={() => onReopen(m)}>↺ Reabrir</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )
+          })}
+
+          {/* insignia de campeón + balón, debajo de la Final, siempre centrada */}
+          {finalMatch && (
+            <>
+              <div
+                className="bracket-final-connector"
+                style={{
+                  top: `${boxTop(finalMatch.id, 'team2') + gapPct * 0.9}%`,
+                  height: `${gapPct * 1.5}%`,
+                }}
+              />
+              <div
+                className="bracket-center-champ"
+                style={{ top: `${boxTop(finalMatch.id, 'team2') + gapPct * 2.4}%` }}
+              >
+                <div className="bracket-center-champ__label">Campeón del torneo</div>
+                <div className={`bracket-center-champ__box ${finalMatch.winner_id ? 'is-decided' : 'bracket-center-champ__box--pending'}`}>
+                  {finalMatch.winner_id ? (
+                    <>
+                      <span>🏆</span>
+                      {teamById(teams, finalMatch.winner_id)?.name}
+                    </>
+                  ) : '¿Quién será?'}
+                </div>
+                <div className="bracket-center-champ__ball"><BallIcon /></div>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
