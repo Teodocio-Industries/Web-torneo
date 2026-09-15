@@ -1,0 +1,7 @@
+.tournament-stats { margin-bottom: 4px; }
+.chart-card h3 { margin-bottom: 10px; font-size: 16px; }
+.stats-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}

@@ -1,0 +1,369 @@
+.bracket-hero {
+  background: radial-gradient(ellipse at top, #101724 0%, var(--negro) 62%);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+  padding: clamp(20px, 2.6vw, 36px) clamp(10px, 1.6vw, 26px) clamp(22px, 2.6vw, 36px);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  isolation: isolate;
+}
+
+.bracket-hero::before,
+.bracket-hero::after {
+  content: '';
+  position: absolute;
+  width: clamp(220px, 32vw, 420px);
+  height: clamp(220px, 32vw, 420px);
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.16;
+  pointer-events: none;
+  z-index: 0;
+}
+.bracket-hero::before { background: var(--naranja); top: -12%; left: -8%; }
+.bracket-hero::after { background: #2a6bff; bottom: -14%; right: -10%; opacity: 0.1; }
+
+/* ---------- Encabezado ---------- */
+
+.bracket-hero__header {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  margin-bottom: clamp(14px, 2vw, 22px);
+}
+
+.bracket-hero__eyebrow {
+  color: var(--naranja);
+  font-size: clamp(11px, 1vw, 13px);
+  letter-spacing: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.bracket-hero__title {
+  font-family: Oswald, sans-serif;
+  color: #fff;
+  font-size: clamp(22px, 3.2vw, 36px);
+  letter-spacing: 1px;
+  margin-top: 4px;
+}
+
+.bracket-hero__title span { color: var(--naranja); }
+
+.bracket-hero__subtitle {
+  margin-top: 6px;
+  color: var(--texto-tenue);
+  font-size: clamp(11px, 1.1vw, 13px);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ---------- Marco: todo dentro se posiciona por coordenadas (top/left en %) ---------- */
+
+.bracket-frame-scroll {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.bracket-frame {
+  width: 100%;
+  min-width: 820px;
+  aspect-ratio: 1.75 / 1;
+  position: relative;
+}
+
+/* ---------- Etiquetas de ronda ---------- */
+
+.bracket-round-label {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  text-align: center;
+  font-family: Oswald, sans-serif;
+  color: var(--naranja);
+  font-size: clamp(9px, 0.95vw, 12px);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- Cajas de equipo ---------- */
+
+.team-box {
+  position: absolute;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: clamp(5px, 0.7vw, 9px);
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  padding: clamp(4px, 0.6vw, 7px) clamp(8px, 1vw, 13px);
+  height: clamp(38px, 4.4vw, 54px);
+  font-size: clamp(9.5px, 1vw, 13px);
+  font-weight: 600;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  z-index: 3;
+}
+
+.team-box:hover { border-color: var(--naranja); }
+
+.team-box__badge {
+  flex-shrink: 0;
+  width: clamp(20px, 2.3vw, 30px);
+  height: clamp(20px, 2.3vw, 30px);
+  border-radius: 50%;
+  overflow: hidden;
+}
+.team-box__badge .team-badge { width: 100%; height: 100%; }
+.team-box__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-box__score {
+  flex-shrink: 0;
+  font-family: Oswald, sans-serif;
+  font-weight: 700;
+  color: var(--naranja);
+  font-size: clamp(9.5px, 1.05vw, 14px);
+  min-width: 1.2em;
+  text-align: right;
+}
+
+.team-box--empty {
+  background: transparent;
+  border-style: dashed;
+  border-color: #333c48;
+  color: var(--texto-tenue);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.team-box.is-winner {
+  background: linear-gradient(135deg, var(--naranja) 0%, var(--naranja-fuerte) 100%);
+  border-color: var(--naranja);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 107, 33, 0.35);
+}
+.team-box.is-loser { opacity: 0.4; text-decoration: line-through; }
+.team-box.is-me { outline: 2px solid var(--verde); outline-offset: -2px; }
+
+.team-box__score-input {
+  width: clamp(26px, 2.6vw, 34px);
+  flex-shrink: 0;
+  text-align: center;
+  font-family: Oswald, sans-serif;
+  font-weight: 700;
+  font-size: clamp(10px, 1vw, 13px);
+  background: #0a0e14;
+  border: 1.5px solid var(--naranja);
+  color: var(--naranja);
+  border-radius: 4px;
+  padding: 1px 2px;
+}
+
+/* chip "VS" entre las dos cajas de un cruce */
+.match-vs {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: var(--negro);
+  border: 1px solid var(--linea);
+  color: var(--texto-tenue);
+  font-family: Oswald, sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  border-radius: 999px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* controles de admin (finalizar / reabrir) */
+.match-controls {
+  position: absolute;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 5px;
+  z-index: 4;
+}
+.match-controls__finalize {
+  background: var(--naranja);
+  color: #fff;
+  border: 0;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.match-controls__finalize:hover { background: var(--naranja-fuerte); }
+.match-controls__reopen {
+  background: transparent;
+  color: var(--texto-tenue);
+  border: 1px solid var(--linea);
+  font-size: 9px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.match-controls__reopen:hover { border-color: var(--naranja); color: var(--naranja); }
+
+/* ---------- Halo e insignia de la Final ---------- */
+
+.bracket-final-glow {
+  position: absolute;
+  left: 50%;
+  width: clamp(220px, 30vw, 460px);
+  height: clamp(220px, 30vw, 460px);
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(255, 107, 33, 0.16) 0%, rgba(255, 107, 33, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.bracket-final-badge {
+  position: absolute;
+  transform: translate(-50%, calc(-100% - 26px));
+  white-space: nowrap;
+  font-family: Oswald, sans-serif;
+  color: var(--naranja);
+  font-size: clamp(11px, 1.3vw, 16px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-shadow: 0 0 12px rgba(255, 107, 33, 0.55);
+  z-index: 3;
+}
+.bracket-final-badge__star { font-size: 0.7em; opacity: 0.8; }
+
+.bracket-final-connector {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  border-left: 2px dashed rgba(255, 107, 33, 0.5);
+  z-index: 2;
+}
+
+/* ---------- Centro: campeón del torneo + balón ---------- */
+
+.bracket-center-champ {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  z-index: 3;
+}
+
+.bracket-center-champ__label {
+  color: var(--naranja);
+  font-family: Oswald, sans-serif;
+  font-size: clamp(9px, 1vw, 12px);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.bracket-center-champ__box {
+  background: linear-gradient(160deg, #1a2230 0%, #0e131c 100%);
+  border: 1.5px solid var(--amarillo);
+  border-radius: 8px;
+  min-width: clamp(100px, 13vw, 180px);
+  min-height: clamp(30px, 4vw, 44px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 14px;
+  font-family: Oswald, sans-serif;
+  font-weight: 700;
+  font-size: clamp(11px, 1.15vw, 15px);
+  color: var(--amarillo);
+  text-align: center;
+  box-shadow: 0 0 0 4px rgba(255, 201, 77, 0.08), 0 10px 26px rgba(0, 0, 0, 0.4);
+}
+
+.bracket-center-champ__box--pending {
+  border-color: var(--linea);
+  color: var(--texto-tenue);
+  box-shadow: none;
+}
+
+.bracket-center-champ__box.is-decided {
+  animation: bh-champ-glow 2.2s ease-in-out infinite;
+}
+
+@keyframes bh-champ-glow {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 201, 77, 0.1), 0 10px 26px rgba(0, 0, 0, 0.4); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 201, 77, 0.22), 0 10px 30px rgba(0, 0, 0, 0.45); }
+}
+
+.bracket-center-champ__ball {
+  margin-top: clamp(12px, 1.6vw, 20px);
+  animation: bh-ball-float 5s ease-in-out infinite;
+  filter: drop-shadow(0 8px 16px rgba(255, 107, 33, 0.4));
+}
+.bracket-center-champ__ball svg { width: clamp(38px, 5vw, 68px); height: clamp(38px, 5vw, 68px); }
+
+@keyframes bh-ball-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(10deg); }
+}
+
+/* ---------- Conectores ---------- */
+
+.bracket-connectors { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 1; width: 100%; height: 100%; }
+.bracket-connectors .bracket-line { stroke: rgba(255, 255, 255, 0.4); stroke-width: 2; fill: none; }
+.bracket-connectors .bracket-line--final {
+  stroke: var(--naranja);
+  stroke-width: 2.6;
+  filter: drop-shadow(0 0 5px rgba(255, 107, 33, 0.7));
+}
+
+/* ---------- Línea "en vivo" ---------- */
+
+.bracket-live-strip-wrap { position: relative; z-index: 2; display: flex; justify-content: center; margin-top: clamp(14px, 2vw, 22px); }
+
+.bracket-live-strip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--linea);
+  color: var(--texto-tenue);
+  font-size: clamp(10px, 1.05vw, 13px);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.bracket-live-strip__dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--naranja); flex-shrink: 0;
+  box-shadow: 0 0 0 4px rgba(255, 107, 33, 0.2);
+  animation: bh-live-pulse 1.3s ease-in-out infinite;
+}
+@keyframes bh-live-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 107, 33, 0.2); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 107, 33, 0.05); }
+}
