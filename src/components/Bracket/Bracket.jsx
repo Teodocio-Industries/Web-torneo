@@ -135,7 +135,7 @@ export default function Bracket({
 
   // separación vertical entre las dos cajas de un mismo cruce, expresada
   // como % de la altura del marco (así conectores y cajas usan el mismo valor)
-  const GAP_PX = 16
+  const GAP_PX = 24
   const gapPct = (GAP_PX / frameH) * 100
 
   function boxTop(matchId, which) {
