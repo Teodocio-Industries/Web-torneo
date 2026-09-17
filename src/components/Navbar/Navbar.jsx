@@ -14,7 +14,7 @@ export default function Navbar() {
   return (
     <header className="barra-superior">
       <NavLink className="marca" to="/">
-        <img className="marca__logo" src="/Favicon.jpg" alt="Caribe Sports" />
+        <img className="marca__logo" src="/Web-torneo/Favicon.jpg.jpg" alt="Caribe Sports" />
         <span className="marca__name">Caribe Sports</span>
       </NavLink>
       <nav className="navegacion">
