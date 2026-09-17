@@ -9,7 +9,7 @@ import { ConfirmProvider } from './components/ConfirmDialog/ConfirmDialog.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename="/Web-torneo">
       <AuthProvider>
         <ToastProvider>
           <ConfirmProvider>
