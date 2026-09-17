@@ -67,6 +67,40 @@ torneo-app/
 │        └─ AdminCuentas.jsx
 ```
 
+## Novedades de esta versión (panel admin)
+
+- **Eliminar torneos**: en Admin → Torneos, cada tarjeta tiene un botón ✕ para
+  borrar el torneo completo (equipos, jugadores, bracket y tabla incluidos).
+- **Panel admin con barra lateral**: nuevo layout tipo dashboard (sidebar fija
+  con las pestañas + selector de torneo arriba), responsive con menú
+  hamburguesa en pantallas angostas.
+- **Biblioteca de equipos y jugadores reutilizable**: en Admin → Equipos hay
+  una sección "Biblioteca de equipos" para crear equipos que quedan guardados
+  para siempre (tablas nuevas `team_catalog` / `team_catalog_players`, ver
+  `supabase_migration_catalogo.sql`). Al crear un equipo es obligatorio
+  cargarle al menos un jugador con sus estadísticas (con una gráfica de
+  vista previa). Luego, con un clic ("Agregar a este torneo") ese equipo y su
+  plantilla completa se copian a cualquier torneo, sin volver a cargarlos.
+- **Bracket admin = bracket público + arrastrar y soltar**: Admin → Bracket
+  ahora reutiliza el mismo componente visual que ven los espectadores en
+  Torneos. El bracket se genera con todos los casilleros vacíos y, debajo,
+  aparece la lista de equipos guardados del torneo: se arrastran hacia el
+  casillero vacío que corresponda en la primera ronda. Un botón ✕ sobre el
+  equipo permite quitarlo del casillero mientras el cruce siga pendiente.
+- **Jugadores seccionados por equipo**: Admin → Jugadores muestra primero la
+  biblioteca de equipos con sus jugadores guardados (clic → página propia con
+  estadísticas y gráfica, en `/jugador-biblioteca/:id`), y abajo el roster del
+  torneo actual agrupado por equipo.
+
+### ⚠️ Paso obligatorio antes de usar lo anterior
+
+Ejecuta una vez el archivo `supabase_migration_catalogo.sql` en
+**Supabase → SQL Editor** (proyecto `mundial-2026-bracket`). Crea las tablas
+`team_catalog` y `team_catalog_players`, agrega las columnas `catalog_id` en
+`teams` y `catalog_player_id` en `players`, y sus políticas RLS (mismo
+criterio que el resto de la app: lectura para autenticados, escritura solo
+`admin`). No borra ni modifica ningún dato existente.
+
 ## Puesta en marcha
 
 ```bash
