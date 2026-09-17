@@ -31,8 +31,15 @@ export default function AdminTabla({ selectedId, teams, standings, reloadData })
   }
 
   async function handleDelete(id) {
-    await supabase.from('standings').delete().eq('id', id)
-    await reloadData()
+    if (!window.confirm('¿Eliminar esta fila de la tabla de posiciones?')) return
+    try {
+      const { error } = await supabase.from('standings').delete().eq('id', id)
+      if (error) throw error
+      await reloadData()
+      toast('Fila eliminada', 'ok')
+    } catch (error) {
+      toast('No se pudo eliminar: ' + error.message, 'err')
+    }
   }
 
   return (
@@ -67,7 +74,7 @@ export default function AdminTabla({ selectedId, teams, standings, reloadData })
               <tr key={s.id}>
                 <td>{s.group_name}</td><td>{s.teams?.name}</td>
                 <td>{s.pj}</td><td>{s.pg}</td><td>{s.pe}</td><td>{s.pp}</td><td>{s.gf}</td><td>{s.gc}</td><td>{s.pts}</td>
-                <td><button className="pill-btn" onClick={() => handleDelete(s.id)}>Eliminar</button></td>
+                <td><button className="pill-btn danger" onClick={() => handleDelete(s.id)}>Eliminar</button></td>
               </tr>
             ))}
           </tbody>

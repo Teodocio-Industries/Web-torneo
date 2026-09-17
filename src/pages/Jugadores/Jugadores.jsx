@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 import { useAuth } from '../../context/AuthContext'
@@ -30,6 +31,19 @@ export default function Jugadores() {
       setPlayers(data || [])
     }
     loadPlayers()
+
+    const canalJugadores = supabase
+      .channel(`jugadores-${selectedId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'players', filter: `tournament_id=eq.${selectedId}` },
+        loadPlayers,
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canalJugadores)
+    }
   }, [selectedId])
 
   const miFicha = myPlayers.find((mp) => mp.tournament_id === selectedId)
@@ -86,7 +100,7 @@ export default function Jugadores() {
             <tbody>
               {players.map((p) => (
                 <tr key={p.id}>
-                  <td>{p.full_name}</td>
+                  <td><Link className="enlace-jugador" to={`/jugadores/${p.id}`}>{p.full_name}</Link></td>
                   <td className="team-cell">{p.teams && <TeamBadge team={p.teams} size="sm" />}{p.teams?.name || '—'}</td>
                   <td>{p.dorsal ?? '—'}</td>
                   <td>{p.position ?? '—'}</td>

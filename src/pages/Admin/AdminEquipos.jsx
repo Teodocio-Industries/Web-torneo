@@ -5,7 +5,7 @@ import { uploadFile } from '../../lib/storage'
 import { buildBracketRows, isValidBracketSize } from '../../lib/bracket'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 
-export default function AdminEquipos({ selectedId, teams, reloadData }) {
+export default function AdminEquipos({ selectedId, teams, matches, reloadData }) {
   const toast = useToast()
   const [name, setName] = useState('')
   const [group, setGroup] = useState('')
@@ -58,6 +58,50 @@ export default function AdminEquipos({ selectedId, teams, reloadData }) {
     }
   }
 
+  async function handleDeleteTeam(team) {
+    const confirmed = window.confirm(
+      `¿Eliminar el equipo “${team.name}”?\n\nTambién se eliminarán sus jugadores, su fila en la tabla y los cruces del bracket en los que participe. Esta acción no se puede deshacer.`
+    )
+    if (!confirmed) return
+
+    setBusy(true)
+    try {
+      const matchFilter = `team1_id.eq.${team.id},team2_id.eq.${team.id},winner_id.eq.${team.id}`
+      const operations = [
+        supabase.from('standings').delete().eq('team_id', team.id),
+        supabase.from('players').delete().eq('team_id', team.id),
+        supabase.from('bracket_matches').delete().or(matchFilter),
+        supabase.from('teams').delete().eq('id', team.id),
+      ]
+      for (const operation of operations) {
+        const { error } = await operation
+        if (error) throw error
+      }
+      await reloadData()
+      toast('Equipo y sus datos relacionados eliminados', 'ok')
+    } catch (error) {
+      toast('No se pudo eliminar: ' + error.message, 'err')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleClearBracket() {
+    if (!matches.length) return toast('No hay bracket para eliminar', 'err')
+    if (!window.confirm('¿Eliminar todo el bracket? Los marcadores y ganadores registrados se perderán.')) return
+    setBusy(true)
+    try {
+      const { error } = await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
+      if (error) throw error
+      await reloadData()
+      toast('Bracket eliminado', 'ok')
+    } catch (error) {
+      toast('No se pudo eliminar: ' + error.message, 'err')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <div className="card">
@@ -82,9 +126,12 @@ export default function AdminEquipos({ selectedId, teams, reloadData }) {
             </label>
           ))}
         </div>
-        <button className="btn ghost" onClick={handleGenerate}>Generar / regenerar bracket</button>
+        <div className="action-row">
+          <button className="btn ghost" onClick={handleGenerate} disabled={busy}>Generar / regenerar bracket</button>
+          <button className="pill-btn danger" onClick={handleClearBracket} disabled={busy || !matches.length}>Eliminar bracket</button>
+        </div>
         <table style={{ marginTop: 16 }}>
-          <thead><tr><th></th><th>Equipo</th><th>Grupo</th><th>Estado</th></tr></thead>
+          <thead><tr><th></th><th>Equipo</th><th>Grupo</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             {teams.map((t) => (
               <tr key={t.id}>
@@ -92,6 +139,7 @@ export default function AdminEquipos({ selectedId, teams, reloadData }) {
                 <td>{t.name}</td>
                 <td>{t.group_name || '—'}</td>
                 <td><span className={`badge status-${t.status}`}>{t.status}</span></td>
+                <td><button className="pill-btn danger" onClick={() => handleDeleteTeam(t)} disabled={busy}>Eliminar</button></td>
               </tr>
             ))}
           </tbody>

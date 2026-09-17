@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../components/Toast/Toast'
 import { uploadFile } from '../../lib/storage'
 
-export default function AdminTorneos({ tournaments, selectedId, setSelectedId, reloadTournaments }) {
+export default function AdminTorneos({ tournaments, selectedId, setSelectedId, reloadTournaments, deleteTournament }) {
   const { profile } = useAuth()
   const toast = useToast()
   const [name, setName] = useState('')
@@ -35,6 +35,19 @@ export default function AdminTorneos({ tournaments, selectedId, setSelectedId, r
     }
   }
 
+  async function handleDelete(event, tournament) {
+    event.stopPropagation()
+    setBusy(true)
+    try {
+      const deleted = await deleteTournament(tournament)
+      if (deleted) toast('Torneo y sus datos relacionados eliminados', 'ok')
+    } catch (error) {
+      toast('No se pudo eliminar: ' + error.message, 'err')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       <div className="card">
@@ -60,9 +73,9 @@ export default function AdminTorneos({ tournaments, selectedId, setSelectedId, r
         <h3>Torneos existentes</h3>
         <div className="tourn-grid">
           {tournaments.map((t) => (
-            <div key={t.id} className={`card ${t.id === selectedId ? 'is-active' : ''}`} onClick={() => setSelectedId(t.id)}>
+            <div key={t.id} className={`card tournament-card ${t.id === selectedId ? 'is-active' : ''}`} onClick={() => setSelectedId(t.id)}>
               {t.image_url && <img className="admin-thumb" src={t.image_url} alt="" />}
-              <strong>{t.name}</strong>
+              <div className="card-title-row"><strong>{t.name}</strong><button className="danger-icon" onClick={(event) => handleDelete(event, t)} disabled={busy} title={`Eliminar ${t.name}`} aria-label={`Eliminar ${t.name}`}>×</button></div>
               <div className="mini">{t.is_active ? 'Activo' : 'Inactivo'}</div>
             </div>
           ))}

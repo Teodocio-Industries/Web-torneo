@@ -6,3 +6,5 @@
 .mi-ficha__stat { font-family: Oswald, sans-serif; font-size: 22px; color: var(--naranja); }
 
 .team-cell { display: flex; align-items: center; gap: 8px; }
+.enlace-jugador { color: var(--texto); font-weight: 700; text-decoration: none; }
+.enlace-jugador:hover { color: var(--naranja); text-decoration: underline; }

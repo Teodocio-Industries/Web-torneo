@@ -1,0 +1,36 @@
+.ficha-page { padding-top: 28px; }
+.volver { display: inline-block; margin-bottom: 18px; color: var(--naranja); font-size: 13px; font-weight: 700; text-decoration: none; }
+.ficha-encabezado { display: flex; align-items: center; gap: 18px; }
+.ficha-encabezado h1 { margin: 5px 0 8px; font-size: clamp(32px, 6vw, 54px); }
+.ficha-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
+.ficha-resumen article { padding: 18px; background: var(--panel); border: 1px solid var(--linea); border-radius: var(--radio); }
+.ficha-resumen span, .ficha-resumen small { display: block; color: var(--texto-tenue); font-size: 12px; }
+.ficha-resumen strong { display: block; margin: 5px 0; color: var(--naranja); font: 600 32px Oswald, sans-serif; }
+.ficha-cuadricula { display: grid; grid-template-columns: 1.45fr 1fr; gap: 16px; }
+.titulo-seccion { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 22px; }
+.titulo-seccion h2, .participacion h2 { margin-top: 5px; font-size: 24px; }
+.barras-estadisticas { display: grid; gap: 18px; }
+.barra-estadistica__encabezado { display: flex; justify-content: space-between; margin-bottom: 7px; font-size: 13px; }
+.barra-estadistica__fondo { height: 12px; overflow: hidden; border-radius: 99px; background: var(--panel-2); }
+.barra-estadistica__valor { display: block; height: 100%; border-radius: inherit; transition: width .35s ease; }
+.barra-estadistica__valor.naranja { background: var(--naranja); }
+.barra-estadistica__valor.azul { background: #5da9e9; }
+.barra-estadistica__valor.amarillo { background: var(--amarillo); }
+.barra-estadistica__valor.rojo { background: var(--rojo); }
+.participacion { text-align: center; }
+.participacion .eyebrow { text-align: left; }
+.anillo { display: grid; place-content: center; width: 152px; height: 152px; margin: 18px auto; border-radius: 50%; background: conic-gradient(var(--naranja) var(--porcentaje), var(--panel-2) 0); position: relative; }
+.anillo::before { position: absolute; inset: 13px; content: ''; border-radius: 50%; background: var(--panel); }
+.anillo strong, .anillo span { position: relative; z-index: 1; }
+.anillo strong { font: 600 32px Oswald, sans-serif; }
+.anillo span { color: var(--texto-tenue); font-size: 11px; }
+.leyenda-participacion { display: grid; gap: 8px; text-align: left; }
+.leyenda-participacion span { display: flex; align-items: center; gap: 8px; color: var(--texto-tenue); font-size: 12px; }
+.leyenda-participacion b { margin-left: auto; color: var(--texto); }
+.punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.punto.naranja { background: var(--naranja); }
+.punto.rojo { background: var(--rojo); }
+.tabla-rendimiento { margin-top: 16px; overflow-x: auto; }
+.tabla-rendimiento td:nth-child(n + 2), .tabla-rendimiento th:nth-child(n + 2) { text-align: right; }
+@media (max-width: 720px) { .ficha-resumen { grid-template-columns: repeat(2, 1fr); } .ficha-cuadricula { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .ficha-resumen { grid-template-columns: 1fr; } .titulo-seccion { flex-direction: column; } }

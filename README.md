@@ -58,9 +58,24 @@ npm run dev
 - Proyecto Supabase: `mundial-2026-bracket` (ver `.env` para la URL/clave).
 - Tablas: `profiles`, `tournaments`, `teams`, `bracket_matches`, `standings`, `players`.
 - RLS: cualquier usuario autenticado puede **leer**; solo el rol `admin` puede **escribir**.
+- Tiempo real: habilita la tabla `players` en la publicación `supabase_realtime` desde
+  **Supabase → Database → Replication**. Así el roster y la ficha del jugador se
+  actualizan sin recargar después de que el administrador guarde una edición.
 - Storage: bucket público `mundial-media` para imágenes de torneos y logos de equipos.
 - Edge Function `admin-create-user`: permite que **solo un admin** cree cuentas nuevas
   (jugador / usuario / admin) desde la pestaña **Admin → Cuentas de acceso**.
+
+### Actualización requerida: participación de jugadores
+
+Ejecuta el contenido de
+`supabase/migrations/20260916_player_match_tracking.sql` en el **SQL Editor**
+de Supabase. Añade el campo de partidos suspendidos y activa el tiempo real de
+la tabla `players` para que las fichas se actualicen sin recargar. Los partidos
+jugados se calculan automáticamente desde los encuentros finalizados del equipo.
+
+Si habías aplicado una versión anterior de esa migración, ejecuta también
+`supabase/migrations/20260916_remove_manual_games_played.sql` para quitar el
+campo manual de partidos jugados.
 
 ## Roles
 

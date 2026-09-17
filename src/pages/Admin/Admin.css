@@ -23,6 +23,12 @@
 }
 .tourn-grid .card { cursor: pointer; margin: 0; }
 .tourn-grid .card.is-active { border-color: var(--naranja); box-shadow: 0 0 0 1px var(--naranja); }
+.card-title-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.danger-icon {
+  width: 26px; height: 26px; color: #ff8d87; font-size: 20px; line-height: 1;
+  cursor: pointer; border: 1px solid #71373a; border-radius: 5px; background: #311719;
+}
+.danger-icon:hover { color: #fff; border-color: #e65050; background: #9d2e31; }
 
 .check-grid {
   display: grid;
@@ -33,6 +39,8 @@
 .check-grid label { display: flex; gap: 6px; align-items: center; font-size: 13px; }
 
 .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.form-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.form-title-row h3 { margin-bottom: 5px; }
 .pill-btn {
   border: 1px solid var(--linea);
   background: transparent;
@@ -44,6 +52,12 @@
 }
 .pill-btn.on { background: var(--naranja); border-color: var(--naranja); color: #fff; }
 .pill-btn:hover { border-color: var(--naranja); }
+.pill-btn.danger { color: #ff9b96; border-color: #71373a; background: #311719; }
+.pill-btn.danger:hover { color: #fff; border-color: #e65050; background: #9d2e31; }
+.pill-btn.edit { color: #ffd0ae; border-color: #7a4828; background: #2d1c12; }
+.pill-btn.edit:hover { color: #fff; border-color: var(--naranja); background: var(--naranja); }
+.pill-btn:disabled, .danger-icon:disabled { cursor: not-allowed; opacity: .5; }
+.action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 
 .score-input {
   width: 56px;

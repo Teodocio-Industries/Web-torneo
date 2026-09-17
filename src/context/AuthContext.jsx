@@ -61,6 +61,23 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (!profile?.id) return
+
+    const canalFichaJugador = supabase
+      .channel(`ficha-jugador-${profile.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'players', filter: `profile_id=eq.${profile.id}` },
+        () => loadMyPlayers(profile.id),
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(canalFichaJugador)
+    }
+  }, [profile?.id, loadMyPlayers])
+
   const login = useCallback(async (email, password) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error

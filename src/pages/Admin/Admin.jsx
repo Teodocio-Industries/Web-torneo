@@ -58,11 +58,37 @@ export default function Admin() {
     if (selectedId) loadTournamentData(selectedId)
   }, [selectedId, loadTournamentData])
 
+  const deleteTournament = useCallback(async (tournament) => {
+    const confirmed = window.confirm(
+      `¿Eliminar “${tournament.name}”?\n\nTambién se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`
+    )
+    if (!confirmed) return false
+
+    const tournamentId = tournament.id
+    const operations = [
+      supabase.from('standings').delete().eq('tournament_id', tournamentId),
+      supabase.from('players').delete().eq('tournament_id', tournamentId),
+      supabase.from('bracket_matches').delete().eq('tournament_id', tournamentId),
+      supabase.from('teams').delete().eq('tournament_id', tournamentId),
+      supabase.from('tournaments').delete().eq('id', tournamentId),
+    ]
+
+    for (const operation of operations) {
+      const { error } = await operation
+      if (error) throw error
+    }
+
+    if (selectedId === tournamentId) setSelectedId(null)
+    await loadTournaments(true)
+    return true
+  }, [loadTournaments, selectedId])
+
   const ctx = {
     tournaments, selectedId, setSelectedId,
     teams, matches, standings, players,
     reloadTournaments: loadTournaments,
     reloadData: () => loadTournamentData(selectedId),
+    deleteTournament,
   }
 
   if (loading) return <div className="loading-screen">Cargando panel…</div>
