@@ -78,7 +78,10 @@ function computeLayout(matches) {
   return layout
 }
 
-function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, style }) {
+function TeamBox({
+  team, match, which, myTeamId, editable, onScoreChange, style,
+  dragEnabled, isDropSlot, onDropTeam, onRemoveSlot,
+}) {
   const status = uiStatus(match)
   const score = which === 'team1' ? match.team1_score : match.team2_score
   const isWinner = status === 'jugado' && match.winner_id === team?.id
@@ -86,11 +89,37 @@ function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, style 
   const isMe = myTeamId && team?.id === myTeamId
 
   if (!team) {
+    if (dragEnabled && isDropSlot) {
+      return (
+        <div
+          className="team-box team-box--empty team-box--dropzone"
+          style={style}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault()
+            const teamId = e.dataTransfer.getData('text/team-id')
+            if (teamId) onDropTeam(match, which, teamId)
+          }}
+        >
+          Suelta aquí un equipo
+        </div>
+      )
+    }
     return <div className="team-box team-box--empty" style={style}>Por definir</div>
   }
 
+  const canClear = dragEnabled && isDropSlot && status === 'pendiente'
+
   return (
     <div className={['team-box', isWinner && 'is-winner', isLoser && 'is-loser', isMe && 'is-me'].filter(Boolean).join(' ')} style={style}>
+      {canClear && (
+        <button
+          type="button"
+          className="team-box__clear"
+          title="Quitar del cruce"
+          onClick={() => onRemoveSlot(match, which)}
+        >✕</button>
+      )}
       <span className="team-box__badge"><TeamBadge team={team} size="sm" /></span>
       <span className="team-box__name">{team.name}</span>
       {editable && status !== 'jugado' ? (
@@ -110,6 +139,7 @@ function TeamBox({ team, match, which, myTeamId, editable, onScoreChange, style 
 export default function Bracket({
   matches, teams, tournamentName, myTeamId,
   editable = false, onScoreChange, onFinalize, onReopen,
+  dragEnabled = false, poolTeams = [], onDropTeam, onRemoveSlot,
 }) {
   const frameRef = useRef(null)
   const [frameH, setFrameH] = useState(560)
@@ -219,16 +249,19 @@ export default function Bracket({
             const status = uiStatus(m)
             const canFinalize = editable && status !== 'jugado' && t1 && t2 &&
               m.team1_score != null && m.team2_score != null && m.team1_score !== m.team2_score
+            const isDropSlot = dragEnabled && m.round_number === 1
 
             return (
               <div key={m.id}>
                 <TeamBox
                   team={t1} match={m} which="team1" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                   style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${boxTop(m.id, 'team1')}%` }}
+                  dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                 />
                 <TeamBox
                   team={t2} match={m} which="team2" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                   style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${boxTop(m.id, 'team2')}%` }}
+                  dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                 />
                 <span className="match-vs" style={{ left: `${pos.left + pos.width / 2}%`, top: `${pos.centerY}%` }}>VS</span>
                 {editable && (canFinalize || status === 'jugado') && (
@@ -282,6 +315,27 @@ export default function Bracket({
           )}
         </div>
       </div>
+
+      {dragEnabled && (
+        <div className="bracket-pool">
+          <h3>Equipos guardados del torneo</h3>
+          <p className="mini">Arrastra cada equipo hacia un casillero vacío de la primera ronda para ubicarlo en el cuadro.</p>
+          <div className="bracket-pool__list">
+            {poolTeams.map((t) => (
+              <div
+                key={t.id}
+                className="bracket-pool__chip"
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('text/team-id', t.id)}
+              >
+                <TeamBadge team={t} size="sm" />
+                {t.name}
+              </div>
+            ))}
+            {poolTeams.length === 0 && <p className="mini">Todos los equipos ya están ubicados en el cuadro.</p>}
+          </div>
+        </div>
+      )}
 
       <div className="bracket-live-strip-wrap">
         <div className="bracket-live-strip">

@@ -144,6 +144,33 @@
   font-weight: 400;
 }
 
+.team-box--dropzone {
+  cursor: copy;
+  justify-content: center;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.team-box--dropzone:hover {
+  border-color: var(--naranja);
+  background: rgba(255, 107, 33, 0.08);
+  color: var(--naranja);
+}
+
+.team-box__clear {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--rojo);
+  color: #fff;
+  border: 0;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 4;
+}
+
 .team-box.is-winner {
   background: linear-gradient(135deg, var(--naranja) 0%, var(--naranja-fuerte) 100%);
   border-color: var(--naranja);
