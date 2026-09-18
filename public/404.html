@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirigiendo…</title>
+    <script>
+      // GitHub Pages no tiene rutas del servidor. Convierte un enlace directo
+      // como /Web-torneo/admin en la ruta compatible /Web-torneo/#/admin.
+      const base = '/Web-torneo'
+      const path = window.location.pathname.startsWith(base)
+        ? window.location.pathname.slice(base.length)
+        : '/'
+      window.location.replace(`${base}/#${path}${window.location.search}`)
+    </script>
+  </head>
+  <body></body>
+</html>
