@@ -2,15 +2,40 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../components/Toast/Toast'
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import { uploadFile } from '../../lib/storage'
 
 export default function AdminTorneos({ tournaments, selectedId, setSelectedId, reloadTournaments, deleteTournament }) {
   const { profile } = useAuth()
   const toast = useToast()
+  const confirm = useConfirm()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
+
+  async function handleDelete(t) {
+    const ok = await confirm(`¿Eliminar el torneo "${t.name}"? Se borrarán también sus equipos, jugadores, bracket y tabla. Esta acción no se puede deshacer.`, { title: 'Eliminar torneo' })
+    if (!ok) return
+    setBusy(true)
+    try {
+      // Se borra primero todo lo que depende del torneo, por si la base
+      // de datos no tiene borrado en cascada configurado.
+      await supabase.from('bracket_matches').delete().eq('tournament_id', t.id)
+      await supabase.from('standings').delete().eq('tournament_id', t.id)
+      await supabase.from('players').delete().eq('tournament_id', t.id)
+      await supabase.from('teams').delete().eq('tournament_id', t.id)
+      const { error } = await supabase.from('tournaments').delete().eq('id', t.id)
+      if (error) throw error
+      if (selectedId === t.id) setSelectedId(null)
+      await reloadTournaments(true)
+      toast('Torneo eliminado', 'ok')
+    } catch (e) {
+      toast('Error al eliminar: ' + e.message, 'err')
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function handleCreate() {
     if (!name.trim()) return toast('Ponle un nombre al torneo', 'err')
@@ -73,9 +98,16 @@ export default function AdminTorneos({ tournaments, selectedId, setSelectedId, r
         <h3>Torneos existentes</h3>
         <div className="tourn-grid">
           {tournaments.map((t) => (
-            <div key={t.id} className={`card tournament-card ${t.id === selectedId ? 'is-active' : ''}`} onClick={() => setSelectedId(t.id)}>
+            <div key={t.id} className={`card ${t.id === selectedId ? 'is-active' : ''}`} onClick={() => setSelectedId(t.id)}>
+              <button
+                type="button"
+                className="card__delete"
+                title="Eliminar torneo"
+                disabled={busy}
+                onClick={(e) => { e.stopPropagation(); handleDelete(t) }}
+              >✕</button>
               {t.image_url && <img className="admin-thumb" src={t.image_url} alt="" />}
-              <div className="card-title-row"><strong>{t.name}</strong><button className="danger-icon" onClick={(event) => handleDelete(event, t)} disabled={busy} title={`Eliminar ${t.name}`} aria-label={`Eliminar ${t.name}`}>×</button></div>
+              <strong>{t.name}</strong>
               <div className="mini">{t.is_active ? 'Activo' : 'Inactivo'}</div>
             </div>
           ))}

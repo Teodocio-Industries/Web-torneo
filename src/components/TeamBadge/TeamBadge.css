@@ -7,12 +7,15 @@
   color: var(--naranja);
   font: 700 12px Oswald, sans-serif;
   object-fit: cover;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   flex-shrink: 0;
+  flex-grow: 0;
 }
 
-.team-badge--sm { width: 22px; height: 22px; font-size: 9px; }
-.team-badge--md { width: 34px; height: 34px; font-size: 12px; }
-.team-badge--lg { width: 56px; height: 56px; font-size: 16px; }
+.team-badge--sm { width: 34px; min-width: 34px; height: 34px; font-size: 13px; }
+.team-badge--md { width: 44px; min-width: 44px; height: 44px; font-size: 16px; }
+.team-badge--lg { width: 72px; min-width: 72px; height: 72px; font-size: 22px; }
 
 .team-badge--empty {
   color: var(--texto-tenue);
