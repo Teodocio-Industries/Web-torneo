@@ -9,15 +9,16 @@ export function roundNameForTotal(total) {
 // Construye las filas de bracket_matches para N equipos (N debe ser potencia de 2).
 // Reparte los equipos en dos mitades (izquierda/derecha) que confluyen en la Final.
 export function buildBracketRows(tournamentId, teamIds) {
+  // Importante: la ronda 1 se genera SIEMPRE vacía (team1_id/team2_id en null),
+  // aunque ya sepamos qué equipos participan. Así el admin los ubica a mano
+  // arrastrándolos desde la lista de equipos, nunca quedan puestos solos.
   const rows = []
   const n = teamIds.length
   if (n === 2) {
-    rows.push({ tournament_id: tournamentId, round_number: 1, round_name: 'Final', side: 'final', match_index: 0, team1_id: teamIds[0], team2_id: teamIds[1] })
+    rows.push({ tournament_id: tournamentId, round_number: 1, round_name: 'Final', side: 'final', match_index: 0, team1_id: null, team2_id: null })
     return rows
   }
   const half = n / 2
-  const leftArr = teamIds.slice(0, half)
-  const rightArr = teamIds.slice(half)
   let matchesPerSide = half / 2
   let totalTeams = n
   let round = 1
@@ -27,13 +28,13 @@ export function buildBracketRows(tournamentId, teamIds) {
     for (let i = 0; i < matchesPerSide; i++) {
       rows.push({
         tournament_id: tournamentId, round_number: round, round_name: rname, side: 'izquierda', match_index: i,
-        team1_id: round === 1 ? leftArr[i * 2] : null, team2_id: round === 1 ? leftArr[i * 2 + 1] : null,
+        team1_id: null, team2_id: null,
       })
     }
     for (let i = 0; i < matchesPerSide; i++) {
       rows.push({
         tournament_id: tournamentId, round_number: round, round_name: rname, side: 'derecha', match_index: i,
-        team1_id: round === 1 ? rightArr[i * 2] : null, team2_id: round === 1 ? rightArr[i * 2 + 1] : null,
+        team1_id: null, team2_id: null,
       })
     }
     if (matchesPerSide === 1) {

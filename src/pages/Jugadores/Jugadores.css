@@ -8,3 +8,14 @@
 .team-cell { display: flex; align-items: center; gap: 8px; }
 .enlace-jugador { color: var(--texto); font-weight: 700; text-decoration: none; }
 .enlace-jugador:hover { color: var(--naranja); text-decoration: underline; }
+
+.tarjeta-equipo__head { display: flex; justify-content: center; margin-bottom: 8px; }
+
+.roster-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--linea);
+}
+.roster-head h3 { margin: 0; font-size: 18px; }

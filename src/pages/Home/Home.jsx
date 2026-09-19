@@ -55,18 +55,16 @@ export default function Home() {
     <main className="home">
       <section className="home-hero">
         <div>
-          <p className="eyebrow">Caribe Sports Events</p>
-          <h1>La plataforma de análisis<br />profesional de baloncesto</h1>
-          <p className="home-hero__desc">
-            Cruces en vivo, tablas de posiciones y estadísticas de cada jugador,
-            todo en un solo lugar.
-          </p>
+          <h1 className="home-hero__brand">Caribe <span>Sports</span></h1>
           <div className="home-hero__cta">
             <Link className="btn" to="/torneos">Ver torneos</Link>
             {!session && <Link className="btn ghost" to="/login">Iniciar sesión</Link>}
           </div>
         </div>
         <div className="home-hero__art" aria-hidden="true">
+          {/* TODO: reemplazar este bloque por la imagen que envíe el cliente.
+              Cuando la tengan, basta con poner:
+              <img src="/ruta-de-la-imagen.jpg" alt="Caribe Sports" /> en vez del <svg>. */}
           <svg viewBox="0 0 200 200" width="200" height="200">
             <defs>
               <radialGradient id="ballGrad" cx="50%" cy="40%" r="60%">
@@ -82,6 +80,12 @@ export default function Home() {
             <path d="M40 160 C 70 135 130 135 160 160" stroke="#0c1018" strokeWidth="3" fill="none" />
           </svg>
         </div>
+      </section>
+
+      <section className="home-block">
+        <h2>Quiénes somos</h2>
+        {/* TODO: reemplazar por el texto que envíe el cliente */}
+        <p>Redefinimos la competición con análisis profesional y estadísticas en tiempo real.</p>
       </section>
 
       {liveMatch && t1 && t2 && (
@@ -111,11 +115,6 @@ export default function Home() {
           <Link className="btn small" to="/torneos">Ver cuadro completo →</Link>
         </section>
       )}
-
-      <section className="home-block">
-        <h2>Quiénes somos</h2>
-        <p>Redefinimos la competición con análisis profesional y estadísticas en tiempo real.</p>
-      </section>
 
       <section className="home-block home-roles">
         <h2>Un espacio para cada rol</h2>

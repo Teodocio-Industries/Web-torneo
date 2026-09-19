@@ -21,6 +21,10 @@ async function resetForward(matches, match) {
 export default function AdminBracket({ matches, teams, tournaments, selectedId, reloadData }) {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
+  // "Fijar equipos": una vez ubicados con arrastrar y soltar, este botón bloquea
+  // el cuadro para que nadie los mueva sin querer. Se puede volver a editar
+  // pulsando el mismo botón otra vez.
+  const [locked, setLocked] = useState(false)
 
   async function handleScoreChange(match, field, value) {
     const v = value === '' ? null : Math.max(0, parseInt(value, 10) || 0)
@@ -134,12 +138,15 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
 
   return (
     <>
-      <div className="card">
-        <p className="mini">
-          El cuadro se ve igual al que verán los espectadores en Torneos. Arrastra cada equipo guardado
-          hacia un casillero vacío de la primera ronda, luego ingresa el marcador y presiona <strong>Finalizar</strong>.
-          El ganador avanza automáticamente y el perdedor queda eliminado.
+      <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <p className="mini" style={{ margin: 0 }}>
+          {locked
+            ? 'Los equipos están fijos en el cuadro. Pulsa "Editar equipos" si necesitas moverlos.'
+            : 'El cuadro se ve igual al que verán los espectadores en Torneos. Arrastra cada equipo guardado hacia un casillero vacío de la primera ronda. Cuando termines, pulsa "Fijar equipos".'}
         </p>
+        <button type="button" className="btn" onClick={() => setLocked((l) => !l)}>
+          {locked ? '✏️ Editar equipos' : '🔒 Fijar equipos'}
+        </button>
       </div>
 
       <Bracket
@@ -147,7 +154,7 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
         teams={teams}
         tournamentName={tournamentName}
         editable
-        dragEnabled
+        dragEnabled={!locked}
         poolTeams={poolTeams}
         onScoreChange={handleScoreChange}
         onDropTeam={handleDropTeam}
