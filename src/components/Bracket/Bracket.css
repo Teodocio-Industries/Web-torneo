@@ -177,6 +177,7 @@
   color: #fff;
   box-shadow: 0 4px 14px rgba(255, 107, 33, 0.35);
 }
+.team-box.is-winner .team-box__score { color: #fff; }
 .team-box.is-loser { opacity: 0.4; text-decoration: line-through; }
 .team-box.is-me { outline: 2px solid var(--verde); outline-offset: -2px; }
 
