@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import AdminTorneos from './AdminTorneos'
 import AdminEquipos from './AdminEquipos'
 import AdminBracket from './AdminBracket'
@@ -20,6 +21,7 @@ const TABS = [
 
 export default function Admin() {
   const { profile, logout } = useAuth()
+  const confirm = useConfirm()
   const [tab, setTab] = useState('torneos')
   const [tournaments, setTournaments] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -62,8 +64,9 @@ export default function Admin() {
   }, [selectedId, loadTournamentData])
 
   const deleteTournament = useCallback(async (tournament) => {
-    const confirmed = window.confirm(
-      `¿Eliminar “${tournament.name}”?\n\nTambién se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`
+    const confirmed = await confirm(
+      `¿Eliminar "${tournament.name}"? También se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`,
+      { title: 'Eliminar torneo', confirmLabel: 'Sí, eliminar' }
     )
     if (!confirmed) return false
 
@@ -84,7 +87,7 @@ export default function Admin() {
     if (selectedId === tournamentId) setSelectedId(null)
     await loadTournaments(true)
     return true
-  }, [loadTournaments, selectedId])
+  }, [loadTournaments, selectedId, confirm])
 
   // Si el torneo seleccionado fue borrado, cae al primero disponible.
   useEffect(() => {
