@@ -186,12 +186,17 @@
   text-align: center;
   font-family: Oswald, sans-serif;
   font-weight: 700;
-  font-size: clamp(10px, 1vw, 13px);
+  font-size: clamp(11px, 1.1vw, 15px);
   background: #0a0e14;
   border: 1.5px solid var(--naranja);
-  color: var(--naranja);
+  color: #fff;
   border-radius: 4px;
   padding: 1px 2px;
+}
+.team-box__score-input:focus {
+  outline: none;
+  border-color: var(--naranja-fuerte);
+  box-shadow: 0 0 0 2px rgba(255, 107, 33, 0.35);
 }
 
 /* chip "VS" entre las dos cajas de un cruce */
