@@ -99,6 +99,7 @@ export default function Admin() {
     teams, matches, standings, players,
     reloadTournaments: loadTournaments,
     reloadData: () => loadTournamentData(selectedId),
+    deleteTournament,
   }
 
   const activeTournament = tournaments.find((t) => t.id === selectedId)
