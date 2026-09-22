@@ -1,0 +1,48 @@
+.admin-servicios table th,
+.admin-servicios table td { white-space: nowrap; }
+
+.rango-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.rango-chip__price {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--texto);
+}
+
+.rango-chip__actions {
+  display: flex;
+  gap: 6px;
+}
+
+.rango-chip .badge {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rango-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.rango-edit input {
+  background: #0a0e14;
+  border: 1px solid var(--linea);
+  color: var(--texto);
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 13px;
+  width: 100%;
+}
+
+.rango-edit__actions {
+  display: flex;
+  gap: 6px;
+}

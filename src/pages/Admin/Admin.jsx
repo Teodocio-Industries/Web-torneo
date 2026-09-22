@@ -8,6 +8,7 @@ import AdminBracket from './AdminBracket'
 import AdminTabla from './AdminTabla'
 import AdminJugadores from './AdminJugadores'
 import AdminCuentas from './AdminCuentas'
+import AdminServicios from './AdminServicios'
 import './Admin.css'
 
 const TABS = [
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'tabla', label: 'Tabla', icon: '📊' },
   { id: 'jugadores', label: 'Jugadores', icon: '🧑‍🤝‍🧑' },
   { id: 'cuentas', label: 'Cuentas de acceso', icon: '🔑' },
+  { id: 'servicios', label: 'Servicios (rangos)', icon: '💳' },
 ]
 
 export default function Admin() {
@@ -174,6 +176,7 @@ export default function Admin() {
           {tab === 'tabla' && <AdminTabla {...ctx} />}
           {tab === 'jugadores' && <AdminJugadores {...ctx} />}
           {tab === 'cuentas' && <AdminCuentas />}
+          {tab === 'servicios' && <AdminServicios />}
         </div>
       </main>
     </div>
