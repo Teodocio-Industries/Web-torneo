@@ -2,9 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh'
+import ServiciosCatalogo from '../../components/ServiciosCatalogo/ServiciosCatalogo'
 import './Servicios.css'
-
-const ICONS = { camera: '📸', star: '⭐', chart: '📈' }
 
 function formatCOP(value) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(value || 0)
@@ -16,17 +15,12 @@ function soloDigitos(texto) {
 
 export default function Servicios() {
   const { profile } = useAuth()
-  const [tiers, setTiers] = useState([])
   const [misAsignaciones, setMisAsignaciones] = useState([])
   const [settings, setSettings] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const loadAll = useCallback(async () => {
-    const [tiersRes, settingsRes] = await Promise.all([
-      supabase.from('service_tiers').select('*').eq('active', true).order('sort_order'),
-      supabase.from('payment_settings').select('*').eq('id', 1).maybeSingle(),
-    ])
-    setTiers(tiersRes.data || [])
+  const loadMias = useCallback(async () => {
+    const settingsRes = await supabase.from('payment_settings').select('*').eq('id', 1).maybeSingle()
     setSettings(settingsRes.data || null)
     if (profile?.id) {
       const { data } = await supabase.from('tier_assignments').select('*, service_tiers(*)').eq('profile_id', profile.id)
@@ -35,10 +29,8 @@ export default function Servicios() {
     setLoading(false)
   }, [profile?.id])
 
-  useEffect(() => { loadAll() }, [loadAll])
-  useRealtimeRefresh(['tier_assignments', 'service_tiers', 'payment_settings'], loadAll, [loadAll])
-
-  if (loading) return <div className="loading-screen">Cargando servicios…</div>
+  useEffect(() => { loadMias() }, [loadMias])
+  useRealtimeRefresh(['tier_assignments', 'payment_settings'], loadMias, [loadMias])
 
   function whatsappHref(rangoNombre) {
     if (!settings?.whatsapp_number) return null
@@ -46,6 +38,8 @@ export default function Servicios() {
     const mensaje = `Hola, soy ${profile?.full_name || 'un usuario'}, vengo a que me den más información sobre este rango de *${rangoNombre}*.`
     return `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`
   }
+
+  if (loading) return <div className="loading-screen">Cargando servicios…</div>
 
   return (
     <main className="page servicios-page">
@@ -103,29 +97,7 @@ export default function Servicios() {
         </section>
       )}
 
-      <section className="servicios-grid">
-        {tiers.map((tier) => (
-          <div className={`tier-card tier-card--${tier.key}`} key={tier.id}>
-            <div className="tier-card__head">
-              <span className="tier-card__icon">{ICONS[tier.icon] || '⭐'}</span>
-              <h3>{tier.name}</h3>
-            </div>
-            <p className="tier-card__tagline">{tier.tagline}</p>
-            <ul>
-              {(tier.features || []).map((f, i) => <li key={i}>{f}</li>)}
-            </ul>
-            {tier.price_note && <p className="tier-card__note">*{tier.price_note}</p>}
-
-            {whatsappHref(tier.name) ? (
-              <a className="tier-card__cta" href={whatsappHref(tier.name)} target="_blank" rel="noreferrer">
-                Quiero este servicio →
-              </a>
-            ) : (
-              <p className="tier-card__note">El administrador aún no configuró el WhatsApp de contacto.</p>
-            )}
-          </div>
-        ))}
-      </section>
+      <ServiciosCatalogo />
 
       {misAsignaciones.length === 0 && (
         <div className="empty">

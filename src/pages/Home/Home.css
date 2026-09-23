@@ -150,26 +150,8 @@
 .home-block > p { color: var(--texto-tenue); max-width: 60ch; }
 .home-block__lead { color: var(--texto) !important; font-size: 18px; font-weight: 600; margin-bottom: 8px !important; }
 
-.home-roles__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.home-roles__grid .card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: transform 0.18s ease, border-color 0.18s ease;
-}
-
-.home-roles__grid .card:hover {
-  transform: translateY(-3px);
-  border-color: var(--naranja);
-}
-
-.home-roles__grid p { color: var(--texto-tenue); font-size: 14px; margin: 0; }
+.home .servicios-catalogo { padding: 44px 0; border-bottom: 1px solid var(--linea); }
+.home .servicios-catalogo h2 { font-size: 24px; margin-bottom: 6px; }
 
 @media (max-width: 780px) {
   .home-hero { grid-template-columns: 1fr; padding-top: 34px; }

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
+import ServiciosCatalogo from '../../components/ServiciosCatalogo/ServiciosCatalogo'
 import './Home.css'
 
 export default function Home() {
@@ -101,23 +102,12 @@ export default function Home() {
         </section>
       )}
 
-      <section className="home-block home-roles">
-        <h2>Un espacio para cada rol</h2>
-        <div className="home-roles__grid">
-          <div className="card">
-            <span className="badge status-avanzo">Administrador</span>
-            <p>Crea torneos, carga equipos, arma el cuadro, registra resultados y controla la tabla de posiciones.</p>
-          </div>
-          <div className="card">
-            <span className="badge ok">Jugador</span>
-            <p>Ve su ficha, sus estadísticas y si tiene alguna falta o sanción registrada por el administrador.</p>
-          </div>
-          <div className="card">
-            <span className="badge status-en_juego">Usuario</span>
-            <p>Sigue cualquier torneo, su cuadro de cruces y su tabla de posiciones en tiempo real.</p>
-          </div>
-        </div>
-      </section>
+      {session && (
+        <ServiciosCatalogo
+          title="Servicios para tu cuenta"
+          subtitle="Dale clic al rango que te interese y te contactamos por WhatsApp para coordinar el pago."
+        />
+      )}
     </main>
   )
 }
