@@ -115,13 +115,21 @@ export default function Servicios() {
               {(tier.features || []).map((f, i) => <li key={i}>{f}</li>)}
             </ul>
             {tier.price_note && <p className="tier-card__note">*{tier.price_note}</p>}
+
+            {whatsappHref(tier.name) ? (
+              <a className="tier-card__cta" href={whatsappHref(tier.name)} target="_blank" rel="noreferrer">
+                Quiero este servicio →
+              </a>
+            ) : (
+              <p className="tier-card__note">El administrador aún no configuró el WhatsApp de contacto.</p>
+            )}
           </div>
         ))}
       </section>
 
       {misAsignaciones.length === 0 && (
         <div className="empty">
-          Aún no tienes un rango asignado. Si te interesa alguno de estos servicios, contacta al administrador de Caribe Sports.
+          Dale clic a "Quiero este servicio" en el rango que te interese y te escribimos por WhatsApp para coordinar el precio y el pago.
         </div>
       )}
     </main>
