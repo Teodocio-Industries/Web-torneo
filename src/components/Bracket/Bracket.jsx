@@ -122,7 +122,7 @@ function TeamBox({
       )}
       <span className="team-box__badge"><TeamBadge team={team} size="sm" /></span>
       <span className="team-box__name">{team.name}</span>
-      {editable && status !== 'jugado' ? (
+      {editable && status !== 'jugado' && (match.legs || 1) <= 1 ? (
         <input
           className="team-box__score-input"
           type="number"
@@ -233,11 +233,13 @@ export default function Bracket({
               return acc
             }, {})
           ).map(([key, m]) => (
-            <span key={key} className="bracket-round-label" style={labelStyle(layout[m.id])}>{m.round_name}</span>
+            <span key={key} className="bracket-round-label" style={labelStyle(layout[m.id])}>
+              {m.round_name}{(m.legs || 1) > 1 ? ` · ${m.legs} vueltas` : ''}
+            </span>
           ))}
           {finalMatch && (
             <div className="bracket-final-badge" style={{ left: '50%', top: `${boxTop(finalMatch.id, 'team1')}%` }}>
-              <span className="bracket-final-badge__star">★</span> GRAN FINAL <span className="bracket-final-badge__star">★</span>
+              <span className="bracket-final-badge__star">★</span> GRAN FINAL{(finalMatch.legs || 1) > 1 ? ` (${finalMatch.legs} vueltas)` : ''} <span className="bracket-final-badge__star">★</span>
             </div>
           )}
 

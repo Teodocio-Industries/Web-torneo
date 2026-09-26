@@ -67,6 +67,32 @@ torneo-app/
 │        └─ AdminCuentas.jsx
 ```
 
+## Novedades de esta versión (fase de grupos + series a varias vueltas)
+
+- **Nueva pestaña Admin → Clasificación**: toma las filas que ya cargas en
+  Admin → Tabla (agrupadas por "Grupo") y calcula automáticamente quién
+  clasifica: los primeros `N` de cada grupo más los mejores "otros" que
+  hagan falta para completar una potencia de 2. Pensado para el caso de
+  12 equipos en 3 grupos de 4: clasifican los 2 primeros de cada grupo (6)
+  más los 2 mejores terceros (8 en total), que jugarán Cuartos de final.
+  Un botón genera de una vez el cuadro de Cuartos → Semifinal → Final con
+  los cruces ya ubicados (sembrado estándar, evitando cuando es posible que
+  dos equipos del mismo grupo se enfrenten en Cuartos) y marca como
+  eliminados a los equipos que no clasificaron.
+- **Semifinal (o Final) a varias vueltas**: en Admin → Bracket, arriba del
+  cuadro, puedes elegir para cada ronda si se juega a partido único, a ida
+  y vuelta (2 partidos) o a ida/vuelta/desempate (3 partidos). Debajo del
+  cuadro aparece un cargador de marcador por cada partido de la serie; el
+  marcador global se suma solo y es el que decide el ganador (con botones
+  para declarar ganador a mano si el global queda empatado).
+
+### ⚠️ Paso obligatorio antes de usar lo anterior
+
+Ejecuta `supabase/migrations/20260926_multi_leg_matches.sql` en
+**Supabase → SQL Editor**. Agrega las columnas `legs` y `leg_scores` a
+`bracket_matches` (todo lo existente sigue funcionando igual: por defecto
+`legs = 1`, partido único). No borra datos existentes.
+
 ## Novedades de esta versión (panel admin)
 
 - **Eliminar torneos**: en Admin → Torneos, cada tarjeta tiene un botón ✕ para
@@ -155,9 +181,16 @@ campo manual de partidos jugados.
 1. **Admin → Torneos**: crea el torneo (nombre, descripción, imagen opcional).
 2. **Admin → Equipos**: añade cada equipo con su logo. El número de equipos
    debe ser potencia de 2 (2, 4, 8, 16, 32…).
-3. Marca los equipos que quieres incluir y pulsa **Generar bracket**.
+3. **Con fase de grupos** (ej. 12 equipos en 3 grupos de 4): pon el
+   `group_name` de cada equipo (Grupo A/B/C) y NO generes el bracket todavía.
+   Carga los resultados de grupos en **Admin → Tabla**, luego ve a
+   **Admin → Clasificación** para ver quién clasifica y generar de una vez
+   el cuadro de Cuartos → Semifinal → Final con los cruces ya ubicados.
+   **Sin fase de grupos**: marca los equipos que quieres incluir y pulsa
+   **Generar bracket** (el número debe ser potencia de 2).
 4. **Admin → Bracket**: carga marcadores y marca el ganador de cada cruce —
    el ganador avanza automáticamente a la siguiente ronda y el perdedor
-   queda marcado como eliminado.
+   queda marcado como eliminado. Ahí mismo puedes poner la Semifinal o la
+   Final a ida y vuelta (o ida/vuelta/desempate).
 5. **Admin → Tabla** y **Admin → Jugadores**: carga la tabla de posiciones y
    el roster con estadísticas/sanciones.

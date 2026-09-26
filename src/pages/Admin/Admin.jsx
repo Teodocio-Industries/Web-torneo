@@ -6,6 +6,7 @@ import AdminTorneos from './AdminTorneos'
 import AdminEquipos from './AdminEquipos'
 import AdminBracket from './AdminBracket'
 import AdminTabla from './AdminTabla'
+import AdminGrupos from './AdminGrupos'
 import AdminJugadores from './AdminJugadores'
 import AdminCuentas from './AdminCuentas'
 import AdminServicios from './AdminServicios'
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'equipos', label: 'Equipos', icon: '🛡️' },
   { id: 'bracket', label: 'Bracket', icon: '🗂️' },
   { id: 'tabla', label: 'Tabla', icon: '📊' },
+  { id: 'grupos', label: 'Clasificación', icon: '🥇' },
   { id: 'jugadores', label: 'Jugadores', icon: '🧑‍🤝‍🧑' },
   { id: 'cuentas', label: 'Cuentas de acceso', icon: '🔑' },
   { id: 'servicios', label: 'Servicios (rangos)', icon: '💳' },
@@ -174,6 +176,7 @@ export default function Admin() {
           {tab === 'equipos' && <AdminEquipos {...ctx} />}
           {tab === 'bracket' && <AdminBracket {...ctx} />}
           {tab === 'tabla' && <AdminTabla {...ctx} />}
+          {tab === 'grupos' && <AdminGrupos {...ctx} />}
           {tab === 'jugadores' && <AdminJugadores {...ctx} />}
           {tab === 'cuentas' && <AdminCuentas />}
           {tab === 'servicios' && <AdminServicios />}
