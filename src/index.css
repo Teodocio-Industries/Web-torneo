@@ -100,6 +100,39 @@ button, input, select, textarea {
   border-color: var(--naranja);
 }
 
+/* Selector decorado del admin de brackets: permite elegir visualmente
+   qué equipo del torneo es el que está cargando el marcador de cada
+   partido de una serie a varias vueltas. */
+select.leg-team-picker {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #0a0e14;
+  background-image: linear-gradient(45deg, transparent 50%, var(--naranja) 50%),
+                    linear-gradient(135deg, var(--naranja) 50%, transparent 50%);
+  background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  border: 1px solid var(--linea);
+  border-radius: 6px;
+  color: var(--texto);
+  font-weight: 600;
+  padding: 7px 26px 7px 10px;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease;
+}
+select.leg-team-picker:hover {
+  border-color: var(--naranja);
+  background-color: #111722;
+}
+select.leg-team-picker:focus {
+  outline: none;
+  border-color: var(--naranja);
+}
+select.leg-team-picker:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));

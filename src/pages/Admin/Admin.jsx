@@ -171,7 +171,7 @@ export default function Admin() {
           )}
         </header>
 
-        <div className="admin-content__body">
+        <div className={`admin-content__body ${tab === 'bracket' ? 'admin-content__body--bracket-fullscreen' : ''}`}>
           {tab === 'torneos' && <AdminTorneos {...ctx} />}
           {tab === 'equipos' && <AdminEquipos {...ctx} />}
           {tab === 'bracket' && <AdminBracket {...ctx} />}

@@ -38,6 +38,24 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
     await reloadData()
   }
 
+  // Guarda el marcador global desde el modal y (si el match no estaba
+  // finalizado) intenta finalizarlo automáticamente si hay un ganador claro.
+  async function handleSaveScoreFromModal(match, s1, s2) {
+    const { error } = await supabase.from('bracket_matches')
+      .update({ team1_score: s1, team2_score: s2 })
+      .eq('id', match.id)
+    if (error) {
+      toast('No se pudo guardar el marcador: ' + error.message, 'err')
+      return
+    }
+    await reloadData()
+  }
+
+  async function handleFinalizeFromModal(match, winnerId) {
+    // Reutiliza el mismo flujo que el botón Finalizar del bracket.
+    await handleFinalize(match, winnerId)
+  }
+
   async function handleDropTeam(match, which, teamId) {
     const field = which === 'team1' ? 'team1_id' : 'team2_id'
     const otherField = which === 'team1' ? 'team2_id' : 'team1_id'
@@ -45,11 +63,30 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
       toast('Ese equipo ya está en el otro casillero de este cruce', 'err')
       return
     }
+    // Si el casillero de destino ya tiene un equipo, lo desplazamos al pool
+    // poniendo null (BYE no se ve afectado porque va por otra rama).
+    const previousValue = match[field]
     const { error } = await supabase.from('bracket_matches').update({ [field]: teamId }).eq('id', match.id)
     if (error) {
       toast('Error al ubicar el equipo: ' + error.message, 'err')
       return
     }
+    // BYE: si el OTRO casillero del cruce ya está marcado como BYE, este
+    // equipo avanza automáticamente a la siguiente ronda (winner_id = teamId,
+    // status = 'jugado' con score 0-0 simbólico). Funciona también en la
+    // primera ronda (al generar con menos equipos que potencia de 2).
+    if (match[otherField] === 'BYE') {
+      await supabase.from('bracket_matches').update({ winner_id: teamId, status: 'jugado' }).eq('id', match.id)
+      const next = computeNextSlot(matches, { ...match, winner_id: teamId })
+      if (next) {
+        const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
+        if (nextMatch) await supabase.from('bracket_matches').update({ [next.slotField]: teamId }).eq('id', nextMatch.id)
+      }
+      toast('El equipo avanza por BYE del rival', 'ok')
+    }
+    // Si el casillero anterior tenía un equipo, ya quedó libre en el pool
+    // porque Supabase simplemente lo reemplazó.
+    void previousValue
     await reloadData()
   }
 
@@ -94,7 +131,24 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
   async function handleRemoveSlot(match, which) {
     if (match.status !== 'pendiente') return
     const field = which === 'team1' ? 'team1_id' : 'team2_id'
-    await supabase.from('bracket_matches').update({ [field]: null }).eq('id', match.id)
+    const otherField = which === 'team1' ? 'team2_id' : 'team1_id'
+    const removedId = match[field]
+    const updates = { [field]: null }
+    // Si el cruce ya se había "finalizado" por un BYE (winner_id = el equipo
+    // que arrastramos al casillero no-BYE), al quitar ese equipo también
+    // hay que devolver el cruce a pendiente y limpiar winner_id / leg_scores.
+    if (match.winner_id && match[otherField] === 'BYE' && removedId === match.winner_id) {
+      updates.winner_id = null
+      updates.status = 'pendiente'
+      updates.team1_score = null
+      updates.team2_score = null
+      updates.leg_scores = []
+    }
+    const { error } = await supabase.from('bracket_matches').update(updates).eq('id', match.id)
+    if (error) {
+      toast('Error al quitar el equipo: ' + error.message, 'err')
+      return
+    }
     await reloadData()
   }
 
@@ -166,6 +220,74 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
     }
   }
 
+  // Antes de "fijar" el bracket, recorre los cruces de la primera ronda y
+  // resuelve como BYE cualquier cruce que tenga un equipo en un casillero y
+  // el otro vacío/null/'BYE' (es decir, sin rival real). Esto cubre el caso
+  // típico de N equipos que no es potencia de 2 pero también permite que el
+  // admin arme formatos flexibles (p. ej. 6 equipos con un cruce "vacío").
+  // Devuelve cuántos cruces se auto-finalizaron, para mostrarlo en el toast.
+  async function applyByesToIncompleteRound1() {
+    const round1 = matches.filter((m) => m.round_number === 1)
+    const updates = []
+    let autoAdvanced = 0
+    for (const m of round1) {
+      const t1Empty = !m.team1_id || m.team1_id === 'BYE'
+      const t2Empty = !m.team2_id || m.team2_id === 'BYE'
+      if (m.status === 'jugado' || m.winner_id) continue // ya finalizado
+      // Solo nos importan los cruces donde hay EXACTAMENTE un equipo real.
+      if (t1Empty && t2Empty) continue // ninguno, no hacemos nada
+      if (!t1Empty && !t2Empty) continue // los dos tienen equipo, es un cruce normal
+      // Aquí: hay un solo equipo real. Lo declaramos ganador y lo avanzamos.
+      const winner = t1Empty ? m.team2_id : m.team1_id
+      // Aseguramos que el casillero vacío quede explícitamente como 'BYE'
+      // (no como null) para que el visual lo muestre marcado.
+      const emptyField = t1Empty ? 'team1_id' : 'team2_id'
+      updates.push(
+        supabase.from('bracket_matches')
+          .update({ [emptyField]: 'BYE', winner_id: winner, status: 'jugado' })
+          .eq('id', m.id)
+      )
+      // Avanzamos al ganador a la siguiente ronda.
+      const next = computeNextSlot(matches, { ...m, winner_id: winner })
+      if (next) {
+        const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
+        if (nextMatch) {
+          updates.push(
+            supabase.from('bracket_matches').update({ [next.slotField]: winner }).eq('id', nextMatch.id)
+          )
+        }
+      }
+      autoAdvanced += 1
+    }
+    if (updates.length === 0) return 0
+    const results = await Promise.all(updates)
+    const errorResult = results.find((r) => r?.error)
+    if (errorResult?.error) throw errorResult.error
+    return autoAdvanced
+  }
+
+  async function handleToggleLocked() {
+    if (busy) return
+    if (locked) {
+      // Reabrir edición: solo cambia el flag.
+      setLocked(false)
+      return
+    }
+    setBusy(true)
+    try {
+      const autoAdvanced = await applyByesToIncompleteRound1()
+      if (autoAdvanced > 0) {
+        await reloadData()
+        toast(`${autoAdvanced} cruce(s) con casillero solo: el equipo avanza por BYE`, 'ok')
+      }
+      setLocked(true)
+    } catch (e) {
+      toast('Error: ' + e.message, 'err')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (!matches.length) return <div className="empty">Genera el bracket primero desde la pestaña Equipos.</div>
 
   const placedIds = new Set()
@@ -222,7 +344,7 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
             ? 'Los equipos están fijos en el cuadro. Pulsa "Editar equipos" si necesitas moverlos.'
             : 'El cuadro se ve igual al que verán los espectadores en Torneos. Arrastra cada equipo guardado hacia un casillero vacío de la primera ronda. Cuando termines, pulsa "Fijar equipos".'}
         </p>
-        <button type="button" className="btn" onClick={() => setLocked((l) => !l)}>
+        <button type="button" className="btn" onClick={handleToggleLocked} disabled={busy}>
           {locked ? '✏️ Editar equipos' : '🔒 Fijar equipos'}
         </button>
       </div>
@@ -239,6 +361,9 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
         onRemoveSlot={handleRemoveSlot}
         onFinalize={handleFinalize}
         onReopen={handleReopen}
+        onSaveScore={handleSaveScoreFromModal}
+        onFinalizeFromModal={handleFinalizeFromModal}
+        fullscreen
       />
 
       {multiLegMatches.length > 0 && (
@@ -264,8 +389,28 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
                     return (
                       <div key={i} className="field">
                         <label>{labels[i] || `Partido ${i + 1}`}</label>
-                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                          <select
+                            className="leg-team-picker"
+                            aria-label={`Equipo local en ${labels[i] || `Partido ${i + 1}`}`}
+                            disabled={m.status === 'jugado'}
+                            defaultValue={m.team1_id || ''}
+                            onChange={(e) => {
+                              const wrap = e.target.closest('.field')
+                              const target = wrap.querySelector('input[data-side="team1"]')
+                              if (target) target.placeholder = teams.find((t) => t.id === e.target.value)?.name || 'Equipo 1'
+                            }}
+                            style={{ maxWidth: 160 }}
+                          >
+                            <option value={m.team1_id || ''}>{t1}</option>
+                            {teams
+                              .filter((t) => t.id !== m.team1_id && t.id !== m.team2_id)
+                              .map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                          </select>
                           <input
+                            data-side="team1"
                             type="number" placeholder={t1} style={{ width: 70 }}
                             defaultValue={leg.team1 ?? ''}
                             disabled={m.status === 'jugado'}
@@ -273,11 +418,31 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
                           />
                           <span className="mini">–</span>
                           <input
+                            data-side="team2"
                             type="number" placeholder={t2} style={{ width: 70 }}
                             defaultValue={leg.team2 ?? ''}
                             disabled={m.status === 'jugado'}
                             onBlur={(e) => handleLegScoreChange(m, i, 'team2', e.target.value)}
                           />
+                          <select
+                            className="leg-team-picker"
+                            aria-label={`Equipo visitante en ${labels[i] || `Partido ${i + 1}`}`}
+                            disabled={m.status === 'jugado'}
+                            defaultValue={m.team2_id || ''}
+                            onChange={(e) => {
+                              const wrap = e.target.closest('.field')
+                              const target = wrap.querySelector('input[data-side="team2"]')
+                              if (target) target.placeholder = teams.find((t) => t.id === e.target.value)?.name || 'Equipo 2'
+                            }}
+                            style={{ maxWidth: 160 }}
+                          >
+                            <option value={m.team2_id || ''}>{t2}</option>
+                            {teams
+                              .filter((t) => t.id !== m.team1_id && t.id !== m.team2_id)
+                              .map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                          </select>
                         </div>
                       </div>
                     )

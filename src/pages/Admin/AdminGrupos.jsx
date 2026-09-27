@@ -61,8 +61,12 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
   async function handleGenerate() {
     if (!result) return
     const total = result.qualifiers.length
+    if (total < 2) {
+      toast(`Solo clasifican ${total} equipos; necesitas al menos 2 para armar el cuadro. Ajusta "mejores terceros" o revisa que todos los grupos tengan filas en la Tabla.`, 'err')
+      return
+    }
     if (!isValidBracketSize(total)) {
-      toast(`Con esta configuración clasifican ${total} equipos, y debe ser potencia de 2 (2, 4, 8, 16…). Ajusta "mejores terceros" o revisa que todos los grupos tengan filas en la Tabla.`, 'err')
+      toast(`Con esta configuración clasifican ${total} equipos, que no es potencia de 2. Ajusta "mejores terceros" para que la suma sea 2, 4, 8 o 16.`, 'err')
       return
     }
     const ok = await confirm(

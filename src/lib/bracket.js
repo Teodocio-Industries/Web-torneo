@@ -6,21 +6,35 @@ export function roundNameForTotal(total) {
   return names[total] || `Ronda de ${total}`
 }
 
-// Construye las filas de bracket_matches para N equipos (N debe ser potencia de 2).
-// Reparte los equipos en dos mitades (izquierda/derecha) que confluyen en la Final.
+// Construye las filas de bracket_matches para N equipos (N puede ser cualquier
+// número ≥ 2; si no es potencia de 2 se completa con BYE hasta la siguiente
+// potencia de 2). Reparte los equipos en dos mitades (izquierda/derecha) que
+// confluyen en la Final.
+//
+// Importante: la ronda 1 se genera SIEMPRE vacía (team1_id/team2_id en null),
+// aunque ya sepamos qué equipos participan. Así el admin los ubica a mano
+// arrastrándolos desde la lista de equipos, nunca quedan puestos solos.
+//
+// BYE: si team1_id/team2_id vale la cadena 'BYE' (no un uuid), ese casillero
+// representa un hueco: el rival avanza automáticamente a la siguiente ronda
+// sin necesidad de jugar el cruce. El bracket.js lo reconoce y el componente
+// visual lo muestra con estilo distintivo.
 export function buildBracketRows(tournamentId, teamIds) {
-  // Importante: la ronda 1 se genera SIEMPRE vacía (team1_id/team2_id en null),
-  // aunque ya sepamos qué equipos participan. Así el admin los ubica a mano
-  // arrastrándolos desde la lista de equipos, nunca quedan puestos solos.
   const rows = []
   const n = teamIds.length
-  if (n === 2) {
+  if (n < 2) return rows
+
+  // Si los equipos no llegan a una potencia de 2, completamos con BYE.
+  const totalSlots = nextPowerOfTwoAtLeast(n)
+  const hasByes = totalSlots > n
+
+  if (totalSlots === 2) {
     rows.push({ tournament_id: tournamentId, round_number: 1, round_name: 'Final', side: 'final', match_index: 0, team1_id: null, team2_id: null })
     return rows
   }
-  const half = n / 2
+  const half = totalSlots / 2
   let matchesPerSide = half / 2
-  let totalTeams = n
+  let totalTeams = totalSlots
   let round = 1
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -29,16 +43,18 @@ export function buildBracketRows(tournamentId, teamIds) {
       rows.push({
         tournament_id: tournamentId, round_number: round, round_name: rname, side: 'izquierda', match_index: i,
         team1_id: null, team2_id: null,
+        has_bye: hasByes,
       })
     }
     for (let i = 0; i < matchesPerSide; i++) {
       rows.push({
         tournament_id: tournamentId, round_number: round, round_name: rname, side: 'derecha', match_index: i,
         team1_id: null, team2_id: null,
+        has_bye: hasByes,
       })
     }
     if (matchesPerSide === 1) {
-      rows.push({ tournament_id: tournamentId, round_number: round + 1, round_name: 'Final', side: 'final', match_index: 0, team1_id: null, team2_id: null })
+      rows.push({ tournament_id: tournamentId, round_number: round + 1, round_name: 'Final', side: 'final', match_index: 0, team1_id: null, team2_id: null, has_bye: hasByes })
       break
     }
     matchesPerSide /= 2
@@ -48,8 +64,58 @@ export function buildBracketRows(tournamentId, teamIds) {
   return rows
 }
 
+// Devuelve los slots iniciales (round 1) con los teamIds del admin ya
+// ubicados y los huecos completados con 'BYE'. Pensado para que la UI los
+// muestre como sugerencia cuando N no es potencia de 2. NO inserta en BD.
+export function suggestedInitialSlots(teamIds) {
+  const n = teamIds.length
+  if (n < 2) return []
+  const totalSlots = nextPowerOfTwoAtLeast(n)
+  return distributeByes(teamIds, totalSlots)
+}
+
 export function isValidBracketSize(n) {
   return n >= 2 && (n & (n - 1)) === 0
+}
+
+// Siguiente potencia de 2 igual o mayor a `n`. Usado para completar
+// casillas con BYE cuando hay equipos que no llegan a una potencia de 2.
+export function nextPowerOfTwoAtLeast(n) {
+  if (n <= 1) return 1
+  let p = 1
+  while (p < n) p *= 2
+  return p
+}
+
+// Sentinel para un casillero "libre" en la primera ronda cuando no hay
+// suficientes equipos para llenar una potencia de 2. El rival de un BYE
+// avanza automáticamente a la siguiente ronda sin jugar el cruce.
+export const BYE = 'BYE'
+
+// Distribuye BYE en la primera ronda de forma "natural":
+// - Reparte los equipos reales en el orden dado.
+// - Intercala los BYE lo más parejo posible entre ellos, para que ningún
+//   equipo quede muy cerca de otro BYE (regla común en copas con
+//   preliminares: los cabezas de serie se plantan contra BYE).
+// Devuelve un array de longitud `totalSlots` con `teamId | 'BYE'`.
+export function distributeByes(teamIds, totalSlots) {
+  const n = teamIds.length
+  if (n >= totalSlots) return teamIds.slice(0, totalSlots)
+  const byeCount = totalSlots - n
+  const result = new Array(totalSlots).fill('BYE')
+  // Espaciamos los equipos reales lo más parejo posible entre los BYE.
+  // Equivalente a: paso = totalSlots / n, posición i = floor(i * paso).
+  const stride = totalSlots / n
+  teamIds.forEach((id, i) => {
+    const pos = Math.min(totalSlots - 1, Math.floor(i * stride))
+    // Si ya hay un equipo real en `pos` (no debería), busca el siguiente slot libre.
+    let p = pos
+    while (result[p] !== 'BYE') {
+      p = (p + 1) % totalSlots
+    }
+    result[p] = id
+  })
+  return result
 }
 
 function isLastRoundOfSide(matches, match) {
