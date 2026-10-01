@@ -47,8 +47,8 @@
 }
 
 .home-hero__art img {
-  width: 240px;
-  height: 240px;
+  width: 300px;
+  height: 300px;
   max-width: 100%;
   object-fit: contain;
   border-radius: 50%;
@@ -155,7 +155,7 @@
 
 @media (max-width: 780px) {
   .home-hero { grid-template-columns: 1fr; padding-top: 34px; }
-  .home-hero__art img { width: 160px; height: 160px; }
+  .home-hero__art img { width: 200px; height: 200px; }
   .home-live__match { gap: 12px; }
   .home-live__score { font-size: 30px; }
 }
