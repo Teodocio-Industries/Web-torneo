@@ -20,7 +20,7 @@ export const NEGOCIO = {
   // NIT (con dígito de verificación) o cédula, tal como aparece en el RUT.
   nit: COMPLETAR,
   // Dirección física de notificaciones (ciudad y departamento incluidos).
-  direccion: COMPLETAR,
+  direccion: "Calle 10 # 5-20, Cartagena, Bolívar",
   // Correo donde se reciben peticiones, quejas, reclamos y solicitudes de datos personales.
   email: COMPLETAR,
   // Teléfono o WhatsApp público de atención al cliente.
