@@ -24,7 +24,7 @@ export const NEGOCIO = {
   // Correo donde se reciben peticiones, quejas, reclamos y solicitudes de datos personales.
   email: COMPLETAR,
   // Teléfono o WhatsApp público de atención al cliente.
-  telefono: COMPLETAR,
+  telefono: "+57 314 6565664",
   // Persona o área que atiende solicitudes de datos personales (puede ser el mismo titular del negocio).
   responsableDatos: COMPLETAR,
 }
