@@ -10,7 +10,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   const loadProfile = useCallback(async (userId) => {
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single()
+    // Solo las columnas que la app usa (minimización de datos).
+    const { data, error } = await supabase.from('profiles').select('id, email, full_name, role, avatar_url').eq('id', userId).single()
     if (error) {
       console.error(error)
       return null
@@ -78,8 +79,11 @@ export function AuthProvider({ children }) {
     }
   }, [profile?.id, loadMyPlayers])
 
-  const login = useCallback(async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+  // `captchaToken` es opcional: solo se envía si el formulario mostró Cloudflare Turnstile.
+  const login = useCallback(async (email, password, captchaToken) => {
+    const credenciales = { email, password }
+    if (captchaToken) credenciales.options = { captchaToken }
+    const { error } = await supabase.auth.signInWithPassword(credenciales)
     if (error) throw error
   }, [])
 

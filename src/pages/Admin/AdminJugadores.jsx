@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
+import ConsentCheck, { EnlaceLegal } from '../../components/ConsentCheck/ConsentCheck'
 
 const EMPTY = {
   full_name: '', team_id: '', profile_id: '', dorsal: '', position: '',
@@ -14,6 +15,7 @@ const EMPTY = {
 }
 
 export default function AdminJugadores({ selectedId, teams, players, reloadData }) {
+  const [autorizado, setAutorizado] = useState(false)
   const toast = useToast()
   const confirm = useConfirm()
   const [form, setForm] = useState(EMPTY)
@@ -54,6 +56,7 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
 
   async function handleSave() {
     if (!form.full_name.trim()) return toast('Ponle un nombre al jugador', 'err')
+    if (!editingId && !autorizado) return toast('Confirma que cuentas con la autorización del jugador (o de su representante legal)', 'err')
     const triplesIntentados = Math.max(0, +form.three_points_attempted)
     const triplesConvertidos = Math.min(triplesIntentados, Math.max(0, +form.three_points_made))
     const libresIntentados = Math.max(0, +form.free_throws_attempted)
@@ -77,6 +80,7 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       const { error } = await request
       if (error) throw error
       await reloadData()
+      setAutorizado(false)
       toast(editingId ? 'Jugador y estadísticas actualizados' : 'Jugador guardado', 'ok')
       cancelEdit()
     } catch (error) {
@@ -121,6 +125,12 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
           <div className="field"><label>Motivo de la sanción</label><input value={form.sanction_reason} onChange={(e) => set('sanction_reason', e.target.value)} placeholder="Opcional" /></div>
           <div className="field"><label>Vincular a cuenta de jugador</label><select value={form.profile_id} onChange={(e) => set('profile_id', e.target.value)}><option value="">— roster sin cuenta —</option>{jugadorProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.full_name} ({profile.email})</option>)}</select></div>
         </div>
+        {!editingId && (
+          <ConsentCheck checked={autorizado} onChange={setAutorizado} required={false}>
+            Confirmo que el jugador (o su representante legal, si es menor de 18 años) autorizó el registro y la publicación de sus datos y estadísticas según la{' '}
+            <EnlaceLegal a="privacidad">política de privacidad</EnlaceLegal>.
+          </ConsentCheck>
+        )}
         <div className="row-actions"><button className="btn" onClick={handleSave}>{editingId ? 'Guardar cambios' : 'Guardar jugador'}</button>{editingId && <button className="btn ghost" onClick={cancelEdit}>Cancelar edición</button>}</div>
       </div>
 

@@ -11,6 +11,8 @@
   --rojo: #ff4d4d;
   --amarillo: #ffc94d;
   --radio: 8px;
+  /* Texto sobre fondos de acento (naranja/rojo): el blanco no llega a 4.5:1, el casi negro sí. */
+  --sobre-acento: #070b11;
 }
 
 * {
@@ -19,6 +21,15 @@
 
 html {
   scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 body {
@@ -71,7 +82,7 @@ button, input, select, textarea {
   border: 0;
   border-radius: 6px;
   background: var(--naranja);
-  color: #fff;
+  color: var(--sobre-acento);
   font-weight: 600;
   font-size: 14px;
   padding: 10px 18px;
@@ -82,7 +93,7 @@ button, input, select, textarea {
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn.ghost { background: transparent; border: 1px solid var(--linea); color: var(--texto); }
 .btn.ghost:hover { border-color: var(--naranja); }
-.btn.danger { background: var(--rojo); }
+.btn.danger { background: var(--rojo); color: var(--sobre-acento); }
 .btn.small { padding: 6px 12px; font-size: 12px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
@@ -99,6 +110,49 @@ button, input, select, textarea {
   outline: none;
   border-color: var(--naranja);
 }
+
+/* Foco visible para quien navega con teclado (WCAG 2.4.7). */
+:focus-visible {
+  outline: 3px solid var(--amarillo);
+  outline-offset: 2px;
+}
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible,
+select.leg-team-picker:focus-visible {
+  outline: 3px solid var(--amarillo);
+  outline-offset: 1px;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0; border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: 12px; top: -60px;
+  z-index: 1000;
+  background: var(--amarillo);
+  color: var(--sobre-acento);
+  font-weight: 700;
+  border: 0; border-radius: 6px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.skip-link:focus { top: 12px; }
+
+/* Casilla de consentimiento (formularios) */
+.consent-check {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin: 4px 0 14px;
+  font-size: 13px; line-height: 1.45;
+  color: var(--texto);
+}
+.consent-check input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--naranja); }
+.consent-check a { color: var(--naranja); }
 
 /* Selector decorado del admin de brackets: permite elegir visualmente
    qué equipo del torneo es el que está cargando el marcador de cada

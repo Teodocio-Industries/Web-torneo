@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import './ConfirmDialog.css'
 
 const ConfirmContext = createContext(null)
@@ -20,6 +20,22 @@ export function ConfirmProvider({ children }) {
     })
   }, [])
 
+  const cancelarRef = useRef(null)
+  const previoFoco = useRef(null)
+
+  useEffect(() => {
+    if (!dialog) return undefined
+    previoFoco.current = document.activeElement
+    cancelarRef.current?.focus() // el botón seguro (Cancelar) recibe el foco primero
+    const alTeclear = (e) => { if (e.key === 'Escape') close(false) }
+    document.addEventListener('keydown', alTeclear)
+    return () => {
+      document.removeEventListener('keydown', alTeclear)
+      previoFoco.current?.focus?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dialog])
+
   function close(result) {
     setDialog(null)
     if (resolver.current) {
@@ -33,11 +49,11 @@ export function ConfirmProvider({ children }) {
       {children}
       {dialog && (
         <div className="confirm-overlay" onMouseDown={() => close(false)}>
-          <div className="confirm-box" onMouseDown={(e) => e.stopPropagation()}>
-            <h3>{dialog.title}</h3>
-            <p>{dialog.message}</p>
+          <div className="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-titulo" aria-describedby="confirm-mensaje" onMouseDown={(e) => e.stopPropagation()}>
+            <h3 id="confirm-titulo">{dialog.title}</h3>
+            <p id="confirm-mensaje">{dialog.message}</p>
             <div className="confirm-box__actions">
-              <button className="btn ghost" onClick={() => close(false)}>{dialog.cancelLabel}</button>
+              <button ref={cancelarRef} className="btn ghost" onClick={() => close(false)}>{dialog.cancelLabel}</button>
               <button className={`btn ${dialog.danger ? 'danger' : ''}`} onClick={() => close(true)}>{dialog.confirmLabel}</button>
             </div>
           </div>

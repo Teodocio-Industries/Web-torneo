@@ -39,7 +39,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.torneo-tabs button.is-active { color: #fff; background: var(--naranja); border-color: var(--naranja); }
+.torneo-tabs button.is-active { color: var(--sobre-acento); background: var(--naranja); border-color: var(--naranja); }
 
 .grupo-titulo { color: var(--naranja); font-size: 15px; margin: 18px 0 8px; }
 .team-cell { display: flex; align-items: center; gap: 8px; }

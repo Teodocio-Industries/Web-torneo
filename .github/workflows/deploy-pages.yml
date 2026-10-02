@@ -32,11 +32,22 @@ jobs:
       - name: Instalar dependencias
         run: npm ci
 
+      - name: Pruebas
+        run: npm test
+
+      - name: Datos legales pendientes (aviso)
+        run: npm run check:legal
+
+      - name: Auditoría de dependencias (aviso)
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
       - name: Construir la aplicación
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
 
       - name: Preparar GitHub Pages
         uses: actions/configure-pages@v5

@@ -167,14 +167,17 @@ campo manual de partidos jugados.
 | `jugador` | Ver todos los torneos; en **Jugadores** ve resaltada su propia ficha con estadísticas y si tiene una falta/sanción cargada por el admin. |
 | `usuario` | Solo lectura: cuadro de cruces, tabla de posiciones y roster de jugadores. |
 
-## Cuentas de prueba
+## Cuentas de acceso
 
-| Rol      | Correo                        | Contraseña      |
-|----------|-------------------------------|-----------------|
-| Admin    | admin@mundial2026.com         | Admin2026!      |
-| Jugador  | jugador1@mundial2026.com      | Jugador2026!    |
-| Jugador  | jugador2@mundial2026.com      | Jugador2026!    |
-| Usuario  | usuario@mundial2026.com       | Usuario2026!    |
+Por seguridad **no se publican credenciales en este repositorio**. Las cuentas las crea un
+administrador desde el panel (pestaña *Cuentas*) o desde Supabase → Authentication → Users.
+Usa contraseñas largas y únicas (mínimo 10 caracteres).
+
+## Seguridad y cumplimiento
+
+Antes de publicar lee **[docs/SEGURIDAD_Y_CUMPLIMIENTO.md](docs/SEGURIDAD_Y_CUMPLIMIENTO.md)**:
+configuración obligatoria en Supabase, anti-bots, datos legales del negocio (`src/config/negocio.js`)
+y lista de riesgos. Comandos útiles: `npm test` (pruebas) y `npm run check:legal` (datos legales pendientes).
 
 ## Flujo para armar un torneo desde cero
 

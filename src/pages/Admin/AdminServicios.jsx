@@ -33,7 +33,7 @@ export default function AdminServicios() {
   const loadAll = useCallback(async () => {
     const [tiersRes, accountsRes, assignRes, settingsRes] = await Promise.all([
       supabase.from('service_tiers').select('*').order('sort_order'),
-      supabase.from('profiles').select('*').in('role', ['jugador', 'usuario']).order('full_name'),
+      supabase.from('profiles').select('id, full_name, email, role').in('role', ['jugador', 'usuario']).order('full_name'),
       supabase.from('tier_assignments').select('*'),
       supabase.from('payment_settings').select('*').eq('id', 1).maybeSingle(),
     ])

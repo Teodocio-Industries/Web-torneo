@@ -40,7 +40,7 @@ export default function MatchScoreModal({ match, team1, team2, onSave, onClose, 
 
   return (
     <div className="match-modal__backdrop" onClick={onClose}>
-      <div className="match-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="match-modal" role="dialog" aria-modal="true" aria-label="Marcador del partido" onClick={(e) => e.stopPropagation()}>
         <button className="match-modal__close" type="button" aria-label="Cerrar" onClick={onClose}>✕</button>
         <div className="match-modal__eyebrow">{match?.round_name}</div>
         <div className="match-modal__title">

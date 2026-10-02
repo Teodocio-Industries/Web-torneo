@@ -14,10 +14,10 @@ export default function Navbar() {
   return (
     <header className="barra-superior">
       <NavLink className="marca" to="/">
-        <img className="marca__logo" src={`${import.meta.env.BASE_URL}Favicon.jpg`} alt="Caribe Sports" />
+        <img className="marca__logo" src={`${import.meta.env.BASE_URL}Favicon.jpg`} alt="" />
         <span className="marca__name">Caribe Sports</span>
       </NavLink>
-      <nav className="navegacion">
+      <nav className="navegacion" aria-label="Principal">
         <NavLink to="/" end>Inicio</NavLink>
         <NavLink to="/torneos">Torneos</NavLink>
         {session && <NavLink to="/jugadores">Jugadores</NavLink>}

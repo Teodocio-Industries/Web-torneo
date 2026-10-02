@@ -63,7 +63,7 @@ export default function Home() {
           </div>
         </div>
         <div className="home-hero__art">
-          <img src={`${import.meta.env.BASE_URL}Favicon.jpg`} alt="Caribe Sports" />
+          <img src={`${import.meta.env.BASE_URL}Favicon.jpg`} alt="Logo de Caribe Sports" />
         </div>
       </section>
 
@@ -105,7 +105,7 @@ export default function Home() {
       {session && (
         <ServiciosCatalogo
           title="Servicios para tu cuenta"
-          subtitle="Dale clic al rango que te interese y te contactamos por WhatsApp para coordinar el pago."
+          subtitle="Elige el servicio que te interese y escríbenos por WhatsApp para coordinar el precio y el pago."
         />
       )}
     </main>

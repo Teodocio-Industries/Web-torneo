@@ -1,0 +1,24 @@
+.pie {
+  border-top: 1px solid var(--linea);
+  background: var(--panel);
+  padding: 28px 22px 22px;
+  margin-top: 40px;
+}
+.pie__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  gap: 32px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.pie__marca { font-family: Oswald, Impact, sans-serif; font-size: 20px; margin: 0 0 8px; }
+.pie dl { margin: 0; display: grid; gap: 4px; font-size: 13px; }
+.pie dl > div { display: flex; gap: 8px; }
+.pie dt { color: var(--texto-tenue); min-width: 74px; }
+.pie dd { margin: 0; overflow-wrap: anywhere; }
+.dato-pendiente { background: var(--amarillo); color: var(--sobre-acento); font-weight: 700; padding: 0 6px; border-radius: 4px; }
+.pie__enlaces { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+.pie__enlaces a { color: var(--texto); text-underline-offset: 3px; }
+.pie__enlaces a:hover { color: var(--naranja); }
+.pie__copy { max-width: 1180px; margin: 22px auto 0; font-size: 12px; color: var(--texto-tenue); }

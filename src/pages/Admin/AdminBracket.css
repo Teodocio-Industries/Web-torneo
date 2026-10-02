@@ -117,7 +117,7 @@
 
 .admin-vs__name.is-winner {
   background: linear-gradient(135deg, #ff6b21 0%, #ff8a4d 100%) !important;
-  color: #fff !important;
+  color: var(--sobre-acento) !important;
   border-color: var(--naranja) !important;
   font-weight: 700;
 }
@@ -172,7 +172,7 @@
 
 .admin-vs__score.is-winner {
   background: linear-gradient(135deg, #ff6b21 0%, #ff8a4d 100%) !important;
-  color: #fff !important;
+  color: var(--sobre-acento) !important;
   border-color: var(--naranja) !important;
 }
 
@@ -261,7 +261,7 @@
 /* Finalizar / Reabrir buttons */
 .admin-vs__finalize {
   background: var(--naranja);
-  color: #fff;
+  color: var(--sobre-acento);
   border: 0;
   font-size: 12px;
   font-weight: 700;
