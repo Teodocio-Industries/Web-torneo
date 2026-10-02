@@ -1,0 +1,13 @@
+.servicios-encabezado { padding: 40px 0 24px; }
+.servicios-encabezado h1 { margin: 8px 0 6px; font-size: clamp(26px, 4vw, 38px); }
+
+.mis-rangos { margin-bottom: 30px; }
+.mis-rangos h2 { font-size: 18px; margin-bottom: 14px; }
+
+.pago-card { display: flex; flex-direction: column; gap: 14px; }
+.pago-card__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.pago-card__head h3 { margin: 4px 0 0; font-size: 26px; color: var(--naranja); }
+
+.pago-datos { display: flex; gap: 20px; flex-wrap: wrap; padding: 12px 0; border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea); }
+.pago-datos__item { display: flex; flex-direction: column; gap: 2px; }
+.pago-datos__item strong { font-size: 16px; letter-spacing: .5px; }

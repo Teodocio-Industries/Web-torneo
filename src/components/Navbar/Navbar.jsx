@@ -21,6 +21,7 @@ export default function Navbar() {
         <NavLink to="/" end>Inicio</NavLink>
         <NavLink to="/torneos">Torneos</NavLink>
         {session && <NavLink to="/jugadores">Jugadores</NavLink>}
+        {session && <NavLink to="/servicios">Servicios</NavLink>}
         {isAdmin && <NavLink to="/admin">Admin</NavLink>}
       </nav>
       <div className="sesion">

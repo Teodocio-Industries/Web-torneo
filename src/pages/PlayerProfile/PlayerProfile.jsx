@@ -67,6 +67,11 @@ export default function PlayerProfile() {
         <div className="quick-stat"><span>{decimal(stats.asistenciasPorPartido)}</span><label>Asistencias por partido</label></div>
         <div className="quick-stat"><span>{porcentaje(stats.porcentajeTriples)}</span><label>% triples</label></div>
         <div className="quick-stat"><span>{porcentaje(stats.porcentajeLibres)}</span><label>% tiros libres</label></div>
+        <div className="quick-stat"><span>{player.rebounds ?? 0}</span><label>Rebotes</label></div>
+        <div className="quick-stat"><span>{player.steals ?? 0}</span><label>Robos</label></div>
+        <div className="quick-stat"><span>{player.blocks ?? 0}</span><label>Tapones</label></div>
+        <div className="quick-stat"><span>{player.turnovers ?? 0}</span><label>Pérdidas</label></div>
+        <div className="quick-stat"><span>{player.personal_fouls ?? 0}</span><label>Faltas personales</label></div>
         <div className="quick-stat"><span>{player.yellow_cards}</span><label>Faltas técnicas</label></div>
         <div className="quick-stat"><span>{player.red_cards}</span><label>Expulsiones</label></div>
       </div>

@@ -64,6 +64,14 @@
 .admin-content { min-width: 0; }
 .admin-content__body { padding: 24px 28px 60px; max-width: 1280px; }
 
+/* Cuando la pestaña activa es Bracket, dejamos que el bracket use toda la
+   pantalla (alto + ancho). El componente Bracket ya controla su propio
+   layout interno. */
+.admin-content__body--bracket-fullscreen {
+  padding: 0;
+  max-width: none;
+}
+
 .admin-topbar {
   display: flex;
   align-items: center;
@@ -242,6 +250,18 @@
   font-weight: 600;
   cursor: grab;
   user-select: none;
+  max-width: 100%;
 }
 .bracket-pool__chip:active { cursor: grabbing; }
 .bracket-pool__chip:hover { border-color: var(--naranja); }
+.bracket-pool__chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-clamp: 2;
+  word-break: break-word;
+  max-width: 200px;
+}

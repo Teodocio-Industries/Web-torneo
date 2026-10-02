@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import AdminTorneos from './AdminTorneos'
 import AdminEquipos from './AdminEquipos'
 import AdminBracket from './AdminBracket'
 import AdminTabla from './AdminTabla'
+import AdminGrupos from './AdminGrupos'
 import AdminJugadores from './AdminJugadores'
 import AdminCuentas from './AdminCuentas'
+import AdminServicios from './AdminServicios'
 import './Admin.css'
 
 const TABS = [
@@ -14,12 +17,15 @@ const TABS = [
   { id: 'equipos', label: 'Equipos', icon: '🛡️' },
   { id: 'bracket', label: 'Bracket', icon: '🗂️' },
   { id: 'tabla', label: 'Tabla', icon: '📊' },
+  { id: 'grupos', label: 'Clasificación', icon: '🥇' },
   { id: 'jugadores', label: 'Jugadores', icon: '🧑‍🤝‍🧑' },
   { id: 'cuentas', label: 'Cuentas de acceso', icon: '🔑' },
+  { id: 'servicios', label: 'Servicios (rangos)', icon: '💳' },
 ]
 
 export default function Admin() {
   const { profile, logout } = useAuth()
+  const confirm = useConfirm()
   const [tab, setTab] = useState('torneos')
   const [tournaments, setTournaments] = useState([])
   const [selectedId, setSelectedId] = useState(null)
@@ -62,8 +68,9 @@ export default function Admin() {
   }, [selectedId, loadTournamentData])
 
   const deleteTournament = useCallback(async (tournament) => {
-    const confirmed = window.confirm(
-      `¿Eliminar “${tournament.name}”?\n\nTambién se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`
+    const confirmed = await confirm(
+      `¿Eliminar "${tournament.name}"? También se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`,
+      { title: 'Eliminar torneo', confirmLabel: 'Sí, eliminar' }
     )
     if (!confirmed) return false
 
@@ -84,7 +91,7 @@ export default function Admin() {
     if (selectedId === tournamentId) setSelectedId(null)
     await loadTournaments(true)
     return true
-  }, [loadTournaments, selectedId])
+  }, [loadTournaments, selectedId, confirm])
 
   // Si el torneo seleccionado fue borrado, cae al primero disponible.
   useEffect(() => {
@@ -99,6 +106,7 @@ export default function Admin() {
     teams, matches, standings, players,
     reloadTournaments: loadTournaments,
     reloadData: () => loadTournamentData(selectedId),
+    deleteTournament,
   }
 
   const activeTournament = tournaments.find((t) => t.id === selectedId)
@@ -163,13 +171,15 @@ export default function Admin() {
           )}
         </header>
 
-        <div className="admin-content__body">
+        <div className={`admin-content__body ${tab === 'bracket' ? 'admin-content__body--bracket-fullscreen' : ''}`}>
           {tab === 'torneos' && <AdminTorneos {...ctx} />}
           {tab === 'equipos' && <AdminEquipos {...ctx} />}
           {tab === 'bracket' && <AdminBracket {...ctx} />}
           {tab === 'tabla' && <AdminTabla {...ctx} />}
+          {tab === 'grupos' && <AdminGrupos {...ctx} />}
           {tab === 'jugadores' && <AdminJugadores {...ctx} />}
           {tab === 'cuentas' && <AdminCuentas />}
+          {tab === 'servicios' && <AdminServicios />}
         </div>
       </main>
     </div>

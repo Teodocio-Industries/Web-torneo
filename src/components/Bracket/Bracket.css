@@ -9,6 +9,26 @@
   isolation: isolate;
 }
 
+/* Modo pantalla completa: ocupa todo el alto/ancho disponible, sin bordes
+   ni padding externo. Pensado para usarlo dentro del Admin con el header
+   del propio admin como única "reserva" de alto. */
+.bracket-hero--fullscreen {
+  border-radius: 0;
+  border: none;
+  min-height: calc(100vh - 72px); /* aprox alto del admin-topbar */
+  display: flex;
+  flex-direction: column;
+}
+.bracket-hero--fullscreen .bracket-frame-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.bracket-hero--fullscreen .bracket-frame {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 480px;
+}
+
 .bracket-hero::before,
 .bracket-hero::after {
   content: '';
@@ -72,8 +92,38 @@
 .bracket-frame {
   width: 100%;
   min-width: 820px;
+  /* Altura mínima para que las cajas no se aplasten con muchos cruces.
+     El alto final lo decide el aspect-ratio, pero si hace falta más alto
+     (muchos partidos en la primera ronda) el frame crece. */
+  min-height: 520px;
   aspect-ratio: 1.75 / 1;
   position: relative;
+}
+
+/* Con 12 equipos o más: alta densidad → más alto por cruce */
+@media (min-width: 1100px) {
+  .bracket-frame { aspect-ratio: 1.55 / 1; }
+}
+@media (min-width: 1500px) {
+  .bracket-frame { aspect-ratio: 1.35 / 1; }
+}
+
+/* En modo 'ubicar equipos' (dragEnabled), intenta usar casi todo el alto
+   de la ventana para evitar scroll vertical al armar el cuadro. */
+.bracket-hero--place-mode {
+  min-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+}
+.bracket-hero--place-mode .bracket-frame-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.bracket-hero--place-mode .bracket-frame {
+  /* El frame llena lo que queda de alto, sin aspect-ratio fijo. */
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 480px;
 }
 
 /* ---------- Etiquetas de ronda ---------- */
@@ -109,12 +159,25 @@
   font-weight: 600;
   color: var(--texto);
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
+  width: max-content;        /* la caja crece al ancho del nombre */
+  max-width: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   z-index: 3;
 }
 
 .team-box:hover { border-color: var(--naranja); }
+
+.team-box--clickable { cursor: pointer; }
+.team-box--clickable:hover {
+  border-color: var(--naranja);
+  background: rgba(255, 107, 33, 0.06);
+  box-shadow: 0 0 0 1px var(--naranja);
+}
+.team-box--clickable:focus-visible {
+  outline: 2px solid var(--naranja);
+  outline-offset: 2px;
+}
 
 .team-box__badge {
   flex-shrink: 0;
@@ -124,7 +187,12 @@
   overflow: hidden;
 }
 .team-box__badge .team-badge { width: 100%; height: 100%; }
-.team-box__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.team-box__name {
+  flex: 0 1 auto;
+  white-space: nowrap;       /* nombre en 1 línea */
+  overflow: visible;         /* sin recorte, sin ellipsis */
+  min-width: 0;
+}
 .team-box__score {
   flex-shrink: 0;
   font-family: Oswald, sans-serif;
@@ -155,6 +223,43 @@
   color: var(--naranja);
 }
 
+/* Casillero "BYE": no se juega porque no hay suficientes equipos para
+   llenar una potencia de 2. El rival de este hueco avanza de ronda solo. */
+.team-box--bye {
+  background: repeating-linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.025) 0,
+    rgba(255, 255, 255, 0.025) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  border-style: dashed;
+  border-color: #3a4350;
+  color: var(--texto-tenue);
+  font-style: italic;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+}
+.team-box__bye-tag {
+  font-family: Oswald, sans-serif;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--texto-tenue);
+  border: 1px solid #3a4350;
+  border-radius: 4px;
+  padding: 2px 7px;
+  background: rgba(255, 255, 255, 0.04);
+}
+.team-box__bye-hint {
+  font-size: 9px;
+  opacity: 0.75;
+  white-space: nowrap;
+}
+
 .team-box__clear {
   position: absolute;
   top: -8px;
@@ -177,6 +282,7 @@
   color: #fff;
   box-shadow: 0 4px 14px rgba(255, 107, 33, 0.35);
 }
+.team-box.is-winner .team-box__score { color: #fff; }
 .team-box.is-loser { opacity: 0.4; text-decoration: line-through; }
 .team-box.is-me { outline: 2px solid var(--verde); outline-offset: -2px; }
 
@@ -186,12 +292,17 @@
   text-align: center;
   font-family: Oswald, sans-serif;
   font-weight: 700;
-  font-size: clamp(10px, 1vw, 13px);
+  font-size: clamp(11px, 1.1vw, 15px);
   background: #0a0e14;
   border: 1.5px solid var(--naranja);
-  color: var(--naranja);
+  color: #fff;
   border-radius: 4px;
   padding: 1px 2px;
+}
+.team-box__score-input:focus {
+  outline: none;
+  border-color: var(--naranja-fuerte);
+  box-shadow: 0 0 0 2px rgba(255, 107, 33, 0.35);
 }
 
 /* chip "VS" entre las dos cajas de un cruce */

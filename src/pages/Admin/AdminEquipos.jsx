@@ -7,7 +7,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import { uploadFile } from '../../lib/storage'
-import { buildBracketRows, isValidBracketSize } from '../../lib/bracket'
+import { buildBracketRows, distributeByes, nextPowerOfTwoAtLeast } from '../../lib/bracket'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 
 const EMPTY = { name: '', group: '', url: '' }
@@ -122,16 +122,47 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
 
   async function handleGenerate() {
     const ids = Object.keys(checked).filter((id) => checked[id])
-    if (!isValidBracketSize(ids.length)) return toast('El número de equipos seleccionados debe ser potencia de 2 (2, 4, 8, 16, 32…)', 'err')
-    const ok = await confirm(`Se regenerará el bracket completo con ${ids.length} equipos, dejando todos los cruces vacíos para que los ubiques arrastrando. ¿Continuar?`, { title: 'Regenerar bracket' })
+    if (ids.length < 2) return toast('Selecciona al menos 2 equipos', 'err')
+    const totalSlots = nextPowerOfTwoAtLeast(ids.length)
+    const byeCount = totalSlots - ids.length
+    const confirmMsg = byeCount > 0
+      ? `Se generará el bracket con ${ids.length} equipos + ${byeCount} casillero(s) BYE (total ${totalSlots} cruces en primera ronda). Los huecos BYE hacen que el rival avance automáticamente. ¿Continuar?`
+      : `Se regenerará el bracket completo con ${ids.length} equipos, dejando todos los cruces vacíos para que los ubiques arrastrando. ¿Continuar?`
+    const ok = await confirm(confirmMsg, { title: 'Regenerar bracket' })
     if (!ok) return
     try {
       await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
       const rows = buildBracketRows(selectedId, ids)
-      const { error } = await supabase.from('bracket_matches').insert(rows)
-      if (error) throw error
+      // La primera ronda se genera VACÍA: el admin decide quién va contra
+      // quién arrastrando los equipos desde la lista de abajo. Solo los
+      // casilleros que son BYE en la siembra nacen ya marcados como 'BYE'
+      // (el rival avanza automáticamente cuando el admin ubique un equipo
+      // en el otro casillero del cruce). El resto queda en null.
+      const slots = distributeByes(ids, totalSlots)
+      const half = totalSlots / 2
+      const leftSlots = slots.slice(0, half)
+      const rightSlots = slots.slice(half)
+      const rowsWithByes = rows.map((r) => {
+        if (r.round_number !== 1) return r
+        if (r.side === 'izquierda') {
+          const i = r.match_index
+          const t1 = leftSlots[2 * i]
+          const t2 = leftSlots[2 * i + 1]
+          return { ...r, team1_id: t1 === 'BYE' ? 'BYE' : null, team2_id: t2 === 'BYE' ? 'BYE' : null }
+        }
+        if (r.side === 'derecha') {
+          const i = r.match_index
+          const t1 = rightSlots[2 * i]
+          const t2 = rightSlots[2 * i + 1]
+          return { ...r, team1_id: t1 === 'BYE' ? 'BYE' : null, team2_id: t2 === 'BYE' ? 'BYE' : null }
+        }
+        return r
+      })
+      const { error: insertErr } = await supabase.from('bracket_matches').insert(rowsWithByes)
+      if (insertErr) throw insertErr
       await reloadData()
-      toast('Bracket generado: ve a la pestaña Bracket para ubicar los equipos', 'ok')
+      const byeNote = byeCount > 0 ? ` (${byeCount} BYE)` : ''
+      toast(`Bracket generado${byeNote}: arrastra los ${ids.length} equipos a los casilleros desde la pestaña Bracket`, 'ok')
     } catch (e) {
       toast('Error: ' + e.message, 'err')
     }
@@ -397,7 +428,7 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
 
       <div className="card">
         <h3>Equipos del torneo ({teams.length}) — generar bracket</h3>
-        <p className="mini">Selecciona los equipos que participarán. El número debe ser potencia de 2 (2, 4, 8, 16, 32…). El bracket se genera con los cruces vacíos: los ubicas arrastrando en la pestaña Bracket.</p>
+        <p className="mini">Selecciona los equipos que participarán. Si la cantidad no es potencia de 2 (p. ej. 5, 6, 12, 17…) se completa automáticamente con <strong>BYE</strong>: esos huecos hacen que el rival avance a la siguiente ronda sin jugar el cruce.</p>
         <div className="check-grid">
           {teams.map((t) => (
             <label key={t.id}>

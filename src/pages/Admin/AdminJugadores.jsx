@@ -9,6 +9,7 @@ const EMPTY = {
   full_name: '', team_id: '', profile_id: '', dorsal: '', position: '',
   goals: 0, assists: 0, three_points_attempted: 0, three_points_made: 0,
   free_throws_attempted: 0, free_throws_made: 0, yellow_cards: 0, red_cards: 0,
+  rebounds: 0, steals: 0, blocks: 0, turnovers: 0, personal_fouls: 0,
   games_suspended: 0, has_sanction: 'false', sanction_reason: '',
 }
 
@@ -44,6 +45,8 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       three_points_made: player.three_points_made ?? 0, free_throws_attempted: player.free_throws_attempted ?? 0,
       free_throws_made: player.free_throws_made ?? 0, yellow_cards: player.yellow_cards ?? 0,
       red_cards: player.red_cards ?? 0, games_suspended: player.games_suspended ?? 0,
+      rebounds: player.rebounds ?? 0, steals: player.steals ?? 0, blocks: player.blocks ?? 0,
+      turnovers: player.turnovers ?? 0, personal_fouls: player.personal_fouls ?? 0,
       has_sanction: String(Boolean(player.has_sanction)), sanction_reason: player.sanction_reason || '',
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -61,6 +64,9 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       goals: +form.goals, assists: +form.assists, three_points_attempted: triplesIntentados,
       three_points_made: triplesConvertidos, free_throws_attempted: libresIntentados,
       free_throws_made: libresConvertidos, yellow_cards: +form.yellow_cards, red_cards: +form.red_cards,
+      rebounds: Math.max(0, +form.rebounds), steals: Math.max(0, +form.steals),
+      blocks: Math.max(0, +form.blocks), turnovers: Math.max(0, +form.turnovers),
+      personal_fouls: Math.max(0, +form.personal_fouls),
       games_suspended: +form.games_suspended, has_sanction: form.has_sanction === 'true',
       sanction_reason: form.sanction_reason.trim() || null,
     }
@@ -103,6 +109,11 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
           <div className="field"><label>Triples convertidos</label><input type="number" min="0" value={form.three_points_made} onChange={(e) => set('three_points_made', e.target.value)} /></div>
           <div className="field"><label>Tiros libres lanzados</label><input type="number" min="0" value={form.free_throws_attempted} onChange={(e) => set('free_throws_attempted', e.target.value)} /></div>
           <div className="field"><label>Tiros libres convertidos</label><input type="number" min="0" value={form.free_throws_made} onChange={(e) => set('free_throws_made', e.target.value)} /></div>
+          <div className="field"><label>Rebotes</label><input type="number" min="0" value={form.rebounds} onChange={(e) => set('rebounds', e.target.value)} /></div>
+          <div className="field"><label>Robos</label><input type="number" min="0" value={form.steals} onChange={(e) => set('steals', e.target.value)} /></div>
+          <div className="field"><label>Tapones</label><input type="number" min="0" value={form.blocks} onChange={(e) => set('blocks', e.target.value)} /></div>
+          <div className="field"><label>Pérdidas</label><input type="number" min="0" value={form.turnovers} onChange={(e) => set('turnovers', e.target.value)} /></div>
+          <div className="field"><label>Faltas personales</label><input type="number" min="0" value={form.personal_fouls} onChange={(e) => set('personal_fouls', e.target.value)} /></div>
           <div className="field"><label>Partidos suspendido</label><input type="number" min="0" value={form.games_suspended} onChange={(e) => set('games_suspended', e.target.value)} /><small className="mini">Se restan de los partidos finalizados de su equipo.</small></div>
           <div className="field"><label>Faltas técnicas</label><input type="number" min="0" value={form.yellow_cards} onChange={(e) => set('yellow_cards', e.target.value)} /></div>
           <div className="field"><label>Expulsiones</label><input type="number" min="0" value={form.red_cards} onChange={(e) => set('red_cards', e.target.value)} /></div>

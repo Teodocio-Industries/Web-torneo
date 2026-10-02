@@ -7,9 +7,12 @@ import './PlayerCharts.css'
 export default function PlayerCharts({ player, allPlayers }) {
   const own = [
     { stat: 'Puntos', valor: player.goals },
+    { stat: 'Rebotes', valor: player.rebounds },
     { stat: 'Asistencias', valor: player.assists },
-    { stat: 'Faltas técnicas', valor: player.yellow_cards },
-    { stat: 'Expulsiones', valor: player.red_cards },
+    { stat: 'Robos', valor: player.steals },
+    { stat: 'Tapones', valor: player.blocks },
+    { stat: 'Pérdidas', valor: player.turnovers },
+    { stat: 'Faltas personales', valor: player.personal_fouls },
   ]
 
   const avg = (field) => {
@@ -19,9 +22,12 @@ export default function PlayerCharts({ player, allPlayers }) {
 
   const comparison = [
     { stat: 'Puntos', Jugador: player.goals, 'Promedio torneo': avg('goals') },
+    { stat: 'Rebotes', Jugador: player.rebounds, 'Promedio torneo': avg('rebounds') },
     { stat: 'Asistencias', Jugador: player.assists, 'Promedio torneo': avg('assists') },
-    { stat: 'Faltas técnicas', Jugador: player.yellow_cards, 'Promedio torneo': avg('yellow_cards') },
-    { stat: 'Expulsiones', Jugador: player.red_cards, 'Promedio torneo': avg('red_cards') },
+    { stat: 'Robos', Jugador: player.steals, 'Promedio torneo': avg('steals') },
+    { stat: 'Tapones', Jugador: player.blocks, 'Promedio torneo': avg('blocks') },
+    { stat: 'Pérdidas', Jugador: player.turnovers, 'Promedio torneo': avg('turnovers') },
+    { stat: 'Faltas personales', Jugador: player.personal_fouls, 'Promedio torneo': avg('personal_fouls') },
   ]
 
   return (

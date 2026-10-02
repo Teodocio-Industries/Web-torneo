@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { supabase } from '../../lib/supabaseClient'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
+import ServiciosCatalogo from '../../components/ServiciosCatalogo/ServiciosCatalogo'
 import './Home.css'
 
 export default function Home() {
@@ -55,33 +56,22 @@ export default function Home() {
     <main className="home">
       <section className="home-hero">
         <div>
-          <p className="eyebrow">Caribe Sports Events</p>
-          <h1>La plataforma de análisis<br />profesional de baloncesto</h1>
-          <p className="home-hero__desc">
-            Cruces en vivo, tablas de posiciones y estadísticas de cada jugador,
-            todo en un solo lugar.
-          </p>
+          <h1 className="home-hero__brand">Caribe <span>Sports</span></h1>
           <div className="home-hero__cta">
             <Link className="btn" to="/torneos">Ver torneos</Link>
             {!session && <Link className="btn ghost" to="/login">Iniciar sesión</Link>}
           </div>
         </div>
-        <div className="home-hero__art" aria-hidden="true">
-          <svg viewBox="0 0 200 200" width="200" height="200">
-            <defs>
-              <radialGradient id="ballGrad" cx="50%" cy="40%" r="60%">
-                <stop offset="0%" stopColor="#ff8a4d" />
-                <stop offset="100%" stopColor="#ff6b21" />
-              </radialGradient>
-            </defs>
-            <circle cx="100" cy="100" r="86" fill="url(#ballGrad)" />
-            <path d="M100 14 C 60 50 60 150 100 186" stroke="#0c1018" strokeWidth="3" fill="none" />
-            <path d="M100 14 C 140 50 140 150 100 186" stroke="#0c1018" strokeWidth="3" fill="none" />
-            <path d="M14 100 H 186" stroke="#0c1018" strokeWidth="3" fill="none" />
-            <path d="M40 40 C 70 65 130 65 160 40" stroke="#0c1018" strokeWidth="3" fill="none" />
-            <path d="M40 160 C 70 135 130 135 160 160" stroke="#0c1018" strokeWidth="3" fill="none" />
-          </svg>
+        <div className="home-hero__art">
+          <img src={`${import.meta.env.BASE_URL}Favicon.jpg`} alt="Caribe Sports" />
         </div>
+      </section>
+
+      <section className="home-block">
+        <p className="eyebrow">Caribe Sports</p>
+        <h2>Quiénes somos</h2>
+        <p className="home-block__lead">Eventos deportivos que conectan, compiten y dejan huella.</p>
+        <p>Organización, estadísticas y cobertura digital para llevar cada torneo a otro nivel.</p>
       </section>
 
       {liveMatch && t1 && t2 && (
@@ -112,28 +102,12 @@ export default function Home() {
         </section>
       )}
 
-      <section className="home-block">
-        <h2>Quiénes somos</h2>
-        <p>Redefinimos la competición con análisis profesional y estadísticas en tiempo real.</p>
-      </section>
-
-      <section className="home-block home-roles">
-        <h2>Un espacio para cada rol</h2>
-        <div className="home-roles__grid">
-          <div className="card">
-            <span className="badge status-avanzo">Administrador</span>
-            <p>Crea torneos, carga equipos, arma el cuadro, registra resultados y controla la tabla de posiciones.</p>
-          </div>
-          <div className="card">
-            <span className="badge ok">Jugador</span>
-            <p>Ve su ficha, sus estadísticas y si tiene alguna falta o sanción registrada por el administrador.</p>
-          </div>
-          <div className="card">
-            <span className="badge status-en_juego">Usuario</span>
-            <p>Sigue cualquier torneo, su cuadro de cruces y su tabla de posiciones en tiempo real.</p>
-          </div>
-        </div>
-      </section>
+      {session && (
+        <ServiciosCatalogo
+          title="Servicios para tu cuenta"
+          subtitle="Dale clic al rango que te interese y te contactamos por WhatsApp para coordinar el pago."
+        />
+      )}
     </main>
   )
 }
