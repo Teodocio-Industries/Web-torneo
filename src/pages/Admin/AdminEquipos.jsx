@@ -6,7 +6,8 @@ import {
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
-import { uploadFile } from '../../lib/storage'
+import { uploadFile, esUrlImagenSegura } from '../../lib/storage'
+import ConsentCheck from '../../components/ConsentCheck/ConsentCheck'
 import { buildBracketRows, distributeByes, nextPowerOfTwoAtLeast } from '../../lib/bracket'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 
@@ -21,6 +22,7 @@ function emptyDraftPlayer() {
 }
 
 export default function AdminEquipos({ selectedId, teams, matches = [], reloadData }) {
+  const [derechosImagen, setDerechosImagen] = useState(false)
   const toast = useToast()
   const confirm = useConfirm()
 
@@ -80,6 +82,8 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
     setBusy(true)
     try {
       let flag_url = form.url.trim() || null
+      if (flag_url && !esUrlImagenSegura(flag_url)) throw new Error('La URL de la imagen debe empezar por https://')
+      if ((file || (flag_url && !editingId)) && !derechosImagen) throw new Error('Confirma que tienes derecho a usar esta imagen')
       if (file) flag_url = await uploadFile(file, 'teams')
       const payload = { name: form.name.trim(), group_name: form.group.trim() || null }
       if (flag_url) payload.flag_url = flag_url
@@ -187,6 +191,10 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
     setCatalogBusy(true)
     try {
       let flag_url = newTeamUrl.trim() || null
+      if (flag_url && !esUrlImagenSegura(flag_url)) throw new Error('La URL de la imagen debe empezar por https://')
+      if (flag_url || newTeamFile) {
+        if (!derechosImagen) throw new Error('Confirma que tienes derecho a usar esta imagen')
+      }
       if (newTeamFile) flag_url = await uploadFile(newTeamFile, 'teams')
 
       const { data: team, error } = await supabase
@@ -311,6 +319,7 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
             <div className="field"><label>Nombre</label><input value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} placeholder="Ej. Tigres" /></div>
             <div className="field"><label>Logo (archivo)</label><input type="file" accept="image/*" onChange={(e) => setNewTeamFile(e.target.files[0])} /></div>
             <div className="field"><label>o URL de imagen</label><input value={newTeamUrl} onChange={(e) => setNewTeamUrl(e.target.value)} placeholder="https://..." /></div>
+            <div><ConsentCheck checked={derechosImagen} onChange={setDerechosImagen} required={false}>Tengo derecho a usar esta imagen (escudo/logo) o la autorización de su titular.</ConsentCheck></div>
           </div>
 
           <p className="mini" style={{ marginTop: 10 }}>Jugadores y estadísticas (obligatorio al menos 1):</p>
@@ -419,6 +428,7 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
           <div className="field"><label>Grupo (opcional)</label><input value={form.group} onChange={(e) => set('group', e.target.value)} placeholder="Grupo A" /></div>
           <div className="field"><label>Logo (archivo)</label><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} /></div>
           <div className="field"><label>o URL de imagen</label><input value={form.url} onChange={(e) => set('url', e.target.value)} placeholder="https://..." /></div>
+          <div><ConsentCheck checked={derechosImagen} onChange={setDerechosImagen} required={false}>Tengo derecho a usar esta imagen (escudo/logo) o la autorización de su titular.</ConsentCheck></div>
         </div>
         <div className="row-actions">
           <button className="btn" onClick={handleSave} disabled={busy}>{busy ? 'Guardando…' : editingId ? 'Guardar cambios' : 'Añadir equipo'}</button>

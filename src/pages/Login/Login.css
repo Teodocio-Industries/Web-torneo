@@ -18,35 +18,15 @@
 
 .login-brand { text-align: center; margin-bottom: 22px; }
 .login-brand__icon { font-size: 44px; margin-bottom: 8px; }
-.login-brand h1 { font-size: 22px; }
+.login-brand h1 { font-size: 24px; }
 
 .login-card .btn { width: 100%; justify-content: center; margin-top: 6px; }
 
-.demo-box { margin-top: 24px; border-top: 1px dashed var(--linea); padding-top: 14px; }
-.demo-box summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--texto-tenue); font-weight: 600; }
-.demo-list { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
-.demo-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--panel-2);
-  border: 1px solid var(--linea);
-  border-radius: 6px;
-  padding: 8px 10px;
-  gap: 10px;
-}
-.demo-item code { font-size: 11px; color: var(--texto-tenue); word-break: break-all; }
-.demo-item button {
-  border: 1px solid var(--linea);
-  background: transparent;
-  color: var(--texto);
-  font-size: 12px;
-  padding: 5px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.demo-item button:hover { border-color: var(--naranja); color: var(--naranja); }
+.login-bloqueo { margin: 0 0 12px; font-size: 13px; color: var(--amarillo); }
+.login-trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.login-legal { font-size: 12px; line-height: 1.55; color: var(--texto-tenue); margin: 18px 0 0; }
+.login-legal a { color: var(--naranja); text-underline-offset: 3px; }
+.turnstile-box { min-height: 65px; }
 
 .rol { font-size: 10px; text-transform: uppercase; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
 .rol-admin { background: var(--naranja); color: #1a0e05; }

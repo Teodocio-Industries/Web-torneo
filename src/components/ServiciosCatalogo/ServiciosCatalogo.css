@@ -1,8 +1,14 @@
+.servicios-catalogo__estado { margin: 8px 0 0; font-size: 14px; color: var(--texto-tenue); }
+.servicios-consent { margin: 16px 0 4px; padding: 12px 16px; border: 1px solid var(--linea); border-radius: var(--radio); background: var(--panel); }
+.servicios-consent .consent-check { margin: 0; }
+.servicios-catalogo__legal { margin: 18px 0 0; font-size: 12px; line-height: 1.55; color: var(--texto-tenue); max-width: 80ch; }
+
 .servicios-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
   gap: 18px;
   margin-top: 16px;
+  align-items: start;
 }
 
 .tier-card {
@@ -15,31 +21,62 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+/* Colores del catálogo (azul marino / dorado / verde). Todos con texto blanco ≥ 4.5:1. */
 .tier-card--content_package { background: linear-gradient(160deg, #14213d 0%, #1b2a4d 100%); }
-.tier-card--player_spotlight { background: linear-gradient(160deg, #6b5b1e 0%, #8a7326 100%); }
+.tier-card--player_spotlight { background: linear-gradient(160deg, #5a4a13 0%, #72601c 100%); }
 .tier-card--player_performance { background: linear-gradient(160deg, #14432c 0%, #1c5c3c 100%); }
 
-.tier-card__head { display: flex; align-items: center; gap: 10px; }
-.tier-card__icon { font-size: 26px; }
-.tier-card__head h3 { font-size: 20px; letter-spacing: .5px; margin: 0; }
+.tier-card__head { display: flex; align-items: center; gap: 12px; }
+.tier-card__icon { display: inline-flex; color: #fff; opacity: .95; flex: none; }
+.tier-card__head h3 { font-size: 24px; letter-spacing: .5px; margin: 0; text-transform: uppercase; }
 
-.tier-card__tagline { color: rgba(255,255,255,0.85); font-size: 14px; margin: 0; }
+.tier-card__tagline { color: #fff; font-size: 14.5px; line-height: 1.5; margin: 0; }
 
-.tier-card ul { margin: 4px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px; color: rgba(255,255,255,0.92); }
+.tier-card ul { margin: 4px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #fff; }
 
-.tier-card__note { font-style: italic; font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 6px; }
+.tier-card__note { font-style: italic; font-size: 13px; color: rgba(255,255,255,0.92); margin: 6px 0 0; }
+
+/* Ejemplo del Player Spotlight (tarjeta tipo publicación de red social) */
+.spotlight-ejemplo { margin: 8px 0 0; }
+.spotlight-ejemplo__card { background: #fff; color: #1d2433; border-radius: 10px; overflow: hidden; max-width: 270px; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
+.spotlight-ejemplo__banda { background: #1d4f8c; color: #fff; font-weight: 800; font-size: 12px; letter-spacing: .6px; padding: 7px 12px; }
+.spotlight-ejemplo__card p { margin: 0; padding: 0 12px; }
+.spotlight-ejemplo__nombre { font-weight: 800; font-size: 15px; padding-top: 10px !important; }
+.spotlight-ejemplo__stats { font-size: 12.5px; color: #4a5568; padding-top: 4px !important; }
+.spotlight-ejemplo__texto { font-size: 13px; padding: 8px 12px 12px !important; }
+.spotlight-ejemplo figcaption { font-size: 12px; color: rgba(255,255,255,.92); margin-top: 6px; font-style: italic; }
+
+/* Bloque de precio y pago del rango contratado */
+.tier-card__pago { margin-top: 10px; padding: 14px; border-radius: 10px; background: rgba(0,0,0,.28); display: flex; flex-direction: column; gap: 12px; }
+.tier-card__pago-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.tier-card__pago-label { display: block; font-size: 12px; color: rgba(255,255,255,.9); }
+.tier-card__precio { font-family: Oswald, Impact, sans-serif; font-size: 26px; font-weight: 600; }
+.tier-card__datos-pago { display: flex; gap: 18px; flex-wrap: wrap; }
+.tier-card__datos-pago > div { display: flex; flex-direction: column; gap: 2px; }
+.tier-card__datos-pago span { font-size: 12px; color: rgba(255,255,255,.9); }
+.tier-card__datos-pago strong { font-size: 16px; letter-spacing: .4px; }
+.tier-card__datos-pago small { font-size: 12px; color: rgba(255,255,255,.9); }
+
+.tier-card__aviso { font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.92); margin: 0; }
 
 .tier-card__cta {
-  margin-top: auto;
+  margin-top: 6px;
   align-self: flex-start;
   background: #25d366;
   color: #06210f;
+  border: 0;
+  font-family: inherit;
   font-weight: 700;
-  font-size: 13.5px;
-  padding: 10px 16px;
+  font-size: 14px;
+  padding: 11px 18px;
   border-radius: 8px;
   text-decoration: none;
   display: inline-block;
+  cursor: pointer;
 }
+.tier-card__cta:hover { filter: brightness(1.06); }
+.tier-card__cta:disabled { background: rgba(255,255,255,.22); color: #fff; cursor: not-allowed; filter: none; }
 
-.tier-card__cta:hover { filter: brightness(1.05); }
+/* Las insignias dentro de las tarjetas necesitan fondo propio para mantener el contraste. */
+.tier-card .badge.ok { background: #d6f5e1; color: #0d4a24; }
+.tier-card .badge.status-pendiente { background: #fff1c7; color: #4d3a00; }
