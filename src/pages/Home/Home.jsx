@@ -13,6 +13,7 @@ export default function Home() {
   const [teams, setTeams] = useState([])
   const [matches, setMatches] = useState([])
   const [standings, setStandings] = useState([])
+  const [previewLoaded, setPreviewLoaded] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -34,7 +35,10 @@ export default function Home() {
           .limit(1)
         tournament = latestTournaments?.[0]
       }
-      if (!tournament || !mounted) return
+      if (!tournament || !mounted) {
+        if (mounted) setPreviewLoaded(true)
+        return
+      }
 
       const [teamsResult, matchesResult, standingsResult] = await Promise.all([
         supabase.from('teams').select('*').eq('tournament_id', tournament.id).order('name'),
@@ -48,6 +52,7 @@ export default function Home() {
       setTeams(teamsResult.data || [])
       setMatches(tournamentMatches)
       setStandings(standingsResult.data || [])
+      setPreviewLoaded(true)
       setLiveMatch(
         tournamentMatches.find((match) => match.status === 'en_juego')
         || tournamentMatches.find((match) => match.status === 'jugado')
@@ -86,16 +91,16 @@ export default function Home() {
         </div>
       </section>
 
-      {currentTournament && (
-        <section className="home-resumen" aria-labelledby="resumen-torneo">
+      <section className="home-resumen" aria-labelledby="resumen-torneo">
           <div className="home-resumen__encabezado">
             <div>
               <p className="eyebrow">Torneo actual</p>
-              <h2 id="resumen-torneo">{currentTournament.name}</h2>
+              <h2 id="resumen-torneo">{currentTournament?.name || 'Resumen del torneo'}</h2>
             </div>
             <Link className="btn small ghost" to="/torneos">Ver torneo completo</Link>
           </div>
 
+          {currentTournament ? (
           <div className="home-resumen__grid">
             <article className="card home-mini-cuadro">
               <h3>Mini cuadro de cruces</h3>
@@ -131,8 +136,14 @@ export default function Home() {
               ) : <p className="mini empty">Aún no hay posiciones registradas.</p>}
             </article>
           </div>
+          ) : (
+            <div className="card home-resumen__vacio">
+              {previewLoaded
+                ? 'Aún no hay un torneo disponible para mostrar. Verifica que exista un torneo activo y que la migración pública de Supabase se haya ejecutado.'
+                : 'Cargando el resumen del torneo…'}
+            </div>
+          )}
         </section>
-      )}
 
       <section className="home-block">
         <p className="eyebrow">Caribe Sports</p>
