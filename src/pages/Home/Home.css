@@ -59,6 +59,24 @@
   border-radius: 50%;
 }
 
+.home-resumen { padding: 42px 0; border-bottom: 1px solid var(--linea); }
+.home-resumen__encabezado { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.home-resumen__encabezado h2 { font-size: 25px; margin: 4px 0 0; }
+.home-resumen__grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 16px; }
+.home-resumen .card { padding: 18px; }
+.home-resumen h3 { font-size: 18px; margin: 0 0 14px; }
+.mini-cruces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mini-cruce { border: 1px solid var(--linea); border-radius: 8px; overflow: hidden; background: var(--panel-2); }
+.mini-cruce__ronda { display: block; padding: 6px 9px; color: var(--naranja); border-bottom: 1px solid var(--linea); font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+.mini-cruce__equipos { display: flex; justify-content: space-between; gap: 8px; padding: 7px 9px; font-size: 12px; }
+.mini-cruce__equipos + .mini-cruce__equipos { border-top: 1px solid rgba(255,255,255,.06); }
+.mini-cruce__equipos span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-cruce__equipos strong { color: var(--naranja); }
+.home-mini-tabla { overflow-x: auto; }
+.home-mini-tabla table { margin: 0; min-width: 360px; }
+.home-mini-tabla th, .home-mini-tabla td { padding: 9px 7px; font-size: 12px; }
+.home-mini-tabla .team-cell { white-space: nowrap; }
+
 .home-live {
   margin-top: 32px;
   padding: 22px 24px;
@@ -161,6 +179,9 @@
 @media (max-width: 780px) {
   .home-hero { grid-template-columns: 1fr; padding-top: 34px; }
   .home-hero__art { width: 140px; height: 140px; }
+  .home-resumen__encabezado { align-items: flex-start; flex-direction: column; }
+  .home-resumen__grid { grid-template-columns: 1fr; }
+  .mini-cruces { grid-template-columns: 1fr; }
   .home-live__match { gap: 12px; }
   .home-live__score { font-size: 30px; }
 }
