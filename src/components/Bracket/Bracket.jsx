@@ -16,7 +16,6 @@ export function isBye(value) {
 const TOP_RESERVED = 9     // franja superior para las etiquetas de ronda
 const USABLE_H = 100 - TOP_RESERVED
 const COL_PAD_RATIO = 0.04 // margen interno de cada columna (más aire entre cajas)
-const STUB = 3.2           // largo del tramo horizontal corto de cada conector (mucho más separación)
 const MIN_COLS_PER_SIDE = 1 // cuántas rondas por lado como mínimo para reservar el ancho
 const FINAL_Y_RATIO = 0.5 // ambas mitades confluyen en el centro del cuadro
 
@@ -343,22 +342,24 @@ export default function Bracket({
       const pos = layout[m.id]
       const y1 = boxTop(m.id, 'team1')
       const y2 = boxTop(m.id, 'team2')
-      const stubX = pos.edgeX + (mirrored ? -STUB : STUB)
-
-      // conector corto que une las dos cajas del mismo cruce
-      lines.push({ d: `M ${pos.edgeX} ${y1} H ${stubX} V ${y2} H ${pos.edgeX}`, final: false })
-
       const next = computeNextSlot(matches, m)
-      if (!next) return
-      const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
-      if (!nextMatch) return
+      const nextMatch = next && findMatch(matches, next.round_number, next.side, next.match_index)
+      if (!nextMatch) {
+        const fallbackStub = pos.edgeX + (mirrored ? -1 : 1) * 1.2
+        lines.push({ d: `M ${pos.edgeX} ${y1} H ${fallbackStub} V ${y2} H ${pos.edgeX}`, final: false })
+        return
+      }
       const nextPos = layout[nextMatch.id]
       const nextWhich = next.slotField === 'team1_id' ? 'team1' : 'team2'
       const targetY = boxTop(nextMatch.id, nextWhich)
       const targetX = mirrored ? nextPos.left + nextPos.width : nextPos.left
       const midY = (y1 + y2) / 2
-      const midX = (stubX + targetX) / 2
-      lines.push({ d: `M ${stubX} ${midY} H ${midX} V ${targetY} H ${targetX}`, final: nextMatch === finalMatch })
+      // Sitúa el nodo de salida dentro del espacio entre columnas. Así las
+      // ramas avanzan hacia la siguiente ronda sin sobrepasarla y devolverse.
+      const pairStubX = pos.edgeX + (targetX - pos.edgeX) * 0.24
+      const midX = (pairStubX + targetX) / 2
+      lines.push({ d: `M ${pos.edgeX} ${y1} H ${pairStubX} V ${y2} H ${pos.edgeX}`, final: false })
+      lines.push({ d: `M ${pairStubX} ${midY} H ${midX} V ${targetY} H ${targetX}`, final: nextMatch === finalMatch })
     })
   })
 
