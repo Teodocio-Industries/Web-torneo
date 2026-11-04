@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import { computeNextSlot, findMatch, aggregateScore, isMultiLeg } from '../../lib/bracket'
 import Bracket from '../../components/Bracket/Bracket'
 
@@ -22,7 +23,9 @@ async function resetForward(matches, match) {
 
 export default function AdminBracket({ matches: allMatches, teams, tournaments, brackets = [], selectedId, reloadData }) {
   const toast = useToast()
+  const confirm = useConfirm()
   const [busy, setBusy] = useState(false)
+  const [deletingBracketId, setDeletingBracketId] = useState(null)
   // "Fijar equipos": una vez ubicados con arrastrar y soltar, este botón bloquea
   // el cuadro para que nadie los mueva sin querer. Se puede volver a editar
   // pulsando el mismo botón otra vez.
@@ -39,6 +42,44 @@ export default function AdminBracket({ matches: allMatches, teams, tournaments, 
 
   const activeBracket = brackets.find((bracket) => bracket.id === activeBracketId) || brackets[0]
   const matches = allMatches.filter((match) => match.bracket_id === activeBracket?.id)
+
+  async function deleteBracket(bracket) {
+    const ok = await confirm(
+      `¿Eliminar "${bracket.name}"? También se eliminarán sus cruces, marcadores y resultados. Los demás brackets seguirán intactos.`,
+      { title: 'Eliminar bracket', confirmLabel: 'Sí, eliminar' }
+    )
+    if (!ok) return
+    setDeletingBracketId(bracket.id)
+    const { error } = await supabase.from('tournament_brackets').delete().eq('id', bracket.id)
+    if (error) {
+      setDeletingBracketId(null)
+      toast('No se pudo eliminar el bracket: ' + error.message, 'err')
+      return
+    }
+    if (activeBracketId === bracket.id) setActiveBracketId(null)
+    await reloadData()
+    setDeletingBracketId(null)
+    toast(`Bracket "${bracket.name}" eliminado`, 'ok')
+  }
+
+  async function deleteAllBrackets() {
+    const ok = await confirm(
+      `¿Eliminar los ${brackets.length} brackets de este torneo? También se eliminarán todos sus cruces, marcadores y resultados.`,
+      { title: 'Eliminar todos los brackets', confirmLabel: 'Sí, eliminar todos' }
+    )
+    if (!ok) return
+    setDeletingBracketId('all')
+    const { error } = await supabase.from('tournament_brackets').delete().eq('tournament_id', selectedId)
+    if (error) {
+      setDeletingBracketId(null)
+      toast('No se pudieron eliminar los brackets: ' + error.message, 'err')
+      return
+    }
+    setActiveBracketId(null)
+    await reloadData()
+    setDeletingBracketId(null)
+    toast('Todos los brackets del torneo fueron eliminados', 'ok')
+  }
 
   async function handleScoreChange(match, field, value) {
     const v = value === '' ? null : Math.max(0, parseInt(value, 10) || 0)
@@ -321,19 +362,37 @@ export default function AdminBracket({ matches: allMatches, teams, tournaments, 
 
   return (
     <>
-      {brackets.length > 1 && (
+      {brackets.length > 0 && (
         <div className="card admin-bracket-picker">
-          <h3>Elige el bracket que vas a editar</h3>
+          <div className="admin-bracket-picker__heading">
+            <h3>{brackets.length > 1 ? 'Elige el bracket que vas a editar' : 'Bracket de este torneo'}</h3>
+            {brackets.length > 1 && (
+              <button type="button" className="pill-btn danger" onClick={deleteAllBrackets} disabled={deletingBracketId !== null}>
+                {deletingBracketId === 'all' ? 'Eliminando…' : 'Eliminar todos'}
+              </button>
+            )}
+          </div>
           <div className="admin-bracket-picker__list">
             {brackets.map((bracket, index) => (
-              <button
-                key={bracket.id}
-                type="button"
-                className={`pill-btn ${bracket.id === activeBracket?.id ? 'on' : ''}`}
-                onClick={() => { setActiveBracketId(bracket.id); setLocked(false) }}
-              >
-                {bracket.name || `Bracket ${index + 1}`} · {bracket.team_count || bracket.team_ids?.length || 0} equipos
-              </button>
+              <div className="admin-bracket-picker__item" key={bracket.id}>
+                <button
+                  type="button"
+                  className={`pill-btn ${bracket.id === activeBracket?.id ? 'on' : ''}`}
+                  onClick={() => { setActiveBracketId(bracket.id); setLocked(false) }}
+                  disabled={deletingBracketId !== null}
+                >
+                  {bracket.name || `Bracket ${index + 1}`} · {bracket.team_count || bracket.team_ids?.length || 0} equipos
+                </button>
+                <button
+                  type="button"
+                  className="pill-btn danger admin-bracket-picker__delete"
+                  onClick={() => deleteBracket(bracket)}
+                  disabled={deletingBracketId !== null}
+                  aria-label={`Eliminar ${bracket.name || `Bracket ${index + 1}`}`}
+                >
+                  {deletingBracketId === bracket.id ? '…' : 'Eliminar'}
+                </button>
+              </div>
             ))}
           </div>
         </div>

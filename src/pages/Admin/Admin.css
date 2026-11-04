@@ -218,7 +218,11 @@
 .pill-btn.edit:hover { color: var(--sobre-acento); border-color: var(--naranja); background: var(--naranja); }
 .pill-btn:disabled, .danger-icon:disabled { cursor: not-allowed; opacity: .5; }
 .action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.admin-bracket-picker__heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.admin-bracket-picker__heading h3 { margin: 0; }
 .admin-bracket-picker__list { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.admin-bracket-picker__item { display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid var(--linea); border-radius: 9px; }
+.admin-bracket-picker__delete { font-size: 11px; }
 
 .score-input {
   width: 56px;
