@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
-import TeamBadge from '../../components/TeamBadge/TeamBadge'
 import ConsentCheck, { EnlaceLegal } from '../../components/ConsentCheck/ConsentCheck'
 
 const EMPTY = {
@@ -11,7 +10,7 @@ const EMPTY = {
   goals: 0, assists: 0, three_points_attempted: 0, three_points_made: 0,
   free_throws_attempted: 0, free_throws_made: 0, yellow_cards: 0, red_cards: 0,
   rebounds: 0, steals: 0, blocks: 0, turnovers: 0, personal_fouls: 0,
-  games_suspended: 0, has_sanction: 'false', sanction_reason: '',
+  games_played: 0, games_suspended: 0, has_sanction: 'false', sanction_reason: '',
 }
 
 export default function AdminJugadores({ selectedId, teams, players, reloadData }) {
@@ -46,7 +45,8 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       assists: player.assists ?? 0, three_points_attempted: player.three_points_attempted ?? 0,
       three_points_made: player.three_points_made ?? 0, free_throws_attempted: player.free_throws_attempted ?? 0,
       free_throws_made: player.free_throws_made ?? 0, yellow_cards: player.yellow_cards ?? 0,
-      red_cards: player.red_cards ?? 0, games_suspended: player.games_suspended ?? 0,
+      red_cards: player.red_cards ?? 0, games_played: player.games_played ?? 0,
+      games_suspended: player.games_suspended ?? 0,
       rebounds: player.rebounds ?? 0, steals: player.steals ?? 0, blocks: player.blocks ?? 0,
       turnovers: player.turnovers ?? 0, personal_fouls: player.personal_fouls ?? 0,
       has_sanction: String(Boolean(player.has_sanction)), sanction_reason: player.sanction_reason || '',
@@ -70,7 +70,8 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       rebounds: Math.max(0, +form.rebounds), steals: Math.max(0, +form.steals),
       blocks: Math.max(0, +form.blocks), turnovers: Math.max(0, +form.turnovers),
       personal_fouls: Math.max(0, +form.personal_fouls),
-      games_suspended: +form.games_suspended, has_sanction: form.has_sanction === 'true',
+      games_played: Math.max(0, +form.games_played), games_suspended: Math.max(0, +form.games_suspended),
+      has_sanction: form.has_sanction === 'true',
       sanction_reason: form.sanction_reason.trim() || null,
     }
     try {
@@ -118,6 +119,7 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
           <div className="field"><label>Tapones</label><input type="number" min="0" value={form.blocks} onChange={(e) => set('blocks', e.target.value)} /></div>
           <div className="field"><label>Pérdidas</label><input type="number" min="0" value={form.turnovers} onChange={(e) => set('turnovers', e.target.value)} /></div>
           <div className="field"><label>Faltas personales</label><input type="number" min="0" value={form.personal_fouls} onChange={(e) => set('personal_fouls', e.target.value)} /></div>
+          <div className="field"><label>Partidos jugados (registrados)</label><input type="number" min="0" value={form.games_played} onChange={(e) => set('games_played', e.target.value)} /><small className="mini">Se suma al cálculo automático del torneo para obtener los promedios.</small></div>
           <div className="field"><label>Partidos suspendido</label><input type="number" min="0" value={form.games_suspended} onChange={(e) => set('games_suspended', e.target.value)} /><small className="mini">Se restan de los partidos finalizados de su equipo.</small></div>
           <div className="field"><label>Faltas técnicas</label><input type="number" min="0" value={form.yellow_cards} onChange={(e) => set('yellow_cards', e.target.value)} /></div>
           <div className="field"><label>Expulsiones</label><input type="number" min="0" value={form.red_cards} onChange={(e) => set('red_cards', e.target.value)} /></div>
@@ -137,8 +139,8 @@ export default function AdminJugadores({ selectedId, teams, players, reloadData 
       <div className="card">
         <h3>Roster de este torneo</h3>
         <table>
-          <thead><tr><th>Jugador</th><th>Equipo</th><th>3PT</th><th>TL</th><th>Estado</th><th>Acciones</th></tr></thead>
-          <tbody>{players.map((player) => <tr key={player.id}><td><Link className="link-jugador" to={`/jugador/${player.id}`}>{player.full_name}</Link></td><td>{player.teams?.name || '—'}</td><td>{player.three_points_made ?? 0}/{player.three_points_attempted ?? 0}</td><td>{player.free_throws_made ?? 0}/{player.free_throws_attempted ?? 0}</td><td>{player.has_sanction ? <span className="badge san">Sancionado</span> : <span className="badge ok">Habilitado</span>}</td><td className="row-actions"><button className="pill-btn edit" onClick={() => startEdit(player)}>✎ Editar</button><button className="pill-btn danger" onClick={() => handleDelete(player.id)}>Eliminar</button></td></tr>)}</tbody>
+          <thead><tr><th>Jugador</th><th>Equipo</th><th>PJ reg.</th><th>3PT</th><th>TL</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody>{players.map((player) => <tr key={player.id}><td><Link className="link-jugador" to={`/jugador/${player.id}`}>{player.full_name}</Link></td><td>{player.teams?.name || '—'}</td><td>{player.games_played ?? 0}</td><td>{player.three_points_made ?? 0}/{player.three_points_attempted ?? 0}</td><td>{player.free_throws_made ?? 0}/{player.free_throws_attempted ?? 0}</td><td>{player.has_sanction ? <span className="badge san">Sancionado</span> : <span className="badge ok">Habilitado</span>}</td><td className="row-actions"><button className="pill-btn edit" onClick={() => startEdit(player)}>✎ Editar</button><button className="pill-btn danger" onClick={() => handleDelete(player.id)}>Eliminar</button></td></tr>)}</tbody>
         </table>
       </div>
     </>
