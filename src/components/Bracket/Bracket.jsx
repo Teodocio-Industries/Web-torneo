@@ -18,7 +18,7 @@ const USABLE_H = 100 - TOP_RESERVED
 const COL_PAD_RATIO = 0.04 // margen interno de cada columna (más aire entre cajas)
 const STUB = 3.2           // largo del tramo horizontal corto de cada conector (mucho más separación)
 const MIN_COLS_PER_SIDE = 1 // cuántas rondas por lado como mínimo para reservar el ancho
-const FINAL_Y_RATIO = 0.16 // la Final va bien arriba, dejando todo el resto del espacio para el campeón
+const FINAL_Y_RATIO = 0.5 // ambas mitades confluyen en el centro del cuadro
 
 // El ancho reservado para CADA mitad del cuadro depende de cuántas rondas
 // tenga esa mitad y de cuánto ancho necesita el nombre más largo del bracket
@@ -26,15 +26,11 @@ const FINAL_Y_RATIO = 0.16 // la Final va bien arriba, dejando todo el resto del
 // ancho y subimos el porcentaje de cada mitad.
 function calcSideWidth(roundsPerSide, nameExtraPx = 0) {
   const r = Math.max(MIN_COLS_PER_SIDE, roundsPerSide || 0)
-  // Base: 12% por ronda (mucho más generoso) con piso de 36% y techo de
-  // 48%. Esto deja mucho más aire entre columnas para que las cajas no se
-  // solapen cuando crecen por nombres largos.
-  const base = Math.min(48, Math.max(36, 12 * r))
-  // Si el nombre más largo necesita más de ~140 px por columna, añadimos
-  // 1.2% del frame por cada 20 px extra (antes 0.9%).
+  // Reserva espacio en el centro para que las cajas de la Final no se aplasten.
+  const base = Math.min(40, Math.max(34, 10 * r))
   const extra = Math.max(0, nameExtraPx - 140)
-  const add = Math.min(15, Math.floor(extra / 20) * 1.2)
-  return Math.min(49, base + add)
+  const add = Math.min(6, Math.floor(extra / 20) * 1.2)
+  return Math.min(40.5, base + add)
 }
 
 function teamById(teams, id) {
@@ -295,10 +291,20 @@ export default function Bracket({
   const finalMatch = matches.find((m) => m.side === 'final')
   const liveMatch = matches.find((m) => uiStatus(m) === 'en_juego')
   const minFramePx = layout.__minFramePx || 820
+  const firstRoundCount = Math.max(
+    1,
+    ...['izquierda', 'derecha'].map((side) => {
+      const rounds = matches.filter((m) => m.side === side).map((m) => m.round_number)
+      if (!rounds.length) return 0
+      const firstRound = Math.min(...rounds)
+      return matches.filter((m) => m.side === side && m.round_number === firstRound).length
+    })
+  )
+  const minFrameHeight = Math.max(520, Math.ceil((firstRoundCount * 108) / (USABLE_H / 100)))
 
   // separación vertical entre las dos cajas de un mismo cruce, expresada
   // como % de la altura del marco (así conectores y cajas usan el mismo valor)
-  const GAP_PX = 24
+  const GAP_PX = 28
   const gapPct = (GAP_PX / frameH) * 100
 
   function boxTop(matchId, which) {
@@ -377,7 +383,7 @@ export default function Bracket({
       </div>
 
       <div className="bracket-frame-scroll">
-        <div className="bracket-frame" ref={frameRef} style={{ minWidth: `${minFramePx}px` }}>
+        <div className="bracket-frame" ref={frameRef} style={{ minWidth: `${minFramePx}px`, minHeight: `${minFrameHeight}px` }}>
           <svg className="bracket-connectors" viewBox="0 0 100 100" preserveAspectRatio="none">
             {lines.map((l, i) => (
               <path key={i} className={`bracket-line ${l.final ? 'bracket-line--final' : ''}`} d={l.d} vectorEffect="non-scaling-stroke" />
