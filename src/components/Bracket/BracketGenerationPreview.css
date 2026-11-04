@@ -70,6 +70,29 @@
   text-transform: uppercase;
 }
 
+.bracket-preview__list {
+  display: grid;
+  gap: 7px;
+  max-height: 240px;
+  margin: 0 0 16px;
+  overflow-y: auto;
+}
+
+.bracket-preview__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--linea);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.bracket-preview__row strong { color: #fff; }
+.bracket-preview__row span { color: var(--texto-tenue); text-align: right; }
+
 .bracket-preview__detail,
 .bracket-preview__warning {
   margin: 0;

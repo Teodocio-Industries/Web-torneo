@@ -22,7 +22,7 @@ function emptyDraftPlayer() {
   }
 }
 
-export default function AdminEquipos({ selectedId, teams, matches = [], reloadData }) {
+export default function AdminEquipos({ selectedId, teams, matches = [], brackets = [], reloadData }) {
   const [derechosImagen, setDerechosImagen] = useState(false)
   const toast = useToast()
   const confirm = useConfirm()
@@ -34,6 +34,7 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
   const [checked, setChecked] = useState({})
   const [busy, setBusy] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [bracketConfigs, setBracketConfigs] = useState([{ name: 'Bracket 1', teamCount: '' }])
 
   // ------- biblioteca de equipos (reutilizable entre torneos) -------
   const [catalogTeams, setCatalogTeams] = useState([])
@@ -63,6 +64,10 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
     teams.forEach((t) => { next[t.id] = true })
     setChecked(next)
   }, [teams])
+
+  useEffect(() => {
+    setBracketConfigs([{ name: 'Bracket 1', teamCount: String(teams.length) }])
+  }, [teams.length])
 
   if (!selectedId) return <div className="empty">Selecciona o crea un torneo primero en la pestaña Torneos.</div>
 
@@ -118,60 +123,112 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
 
   async function handleClearBracket() {
     if (!matches.length) return toast('No hay bracket para eliminar', 'err')
-    const ok = await confirm('¿Eliminar todo el bracket? Los marcadores y ganadores registrados se perderán.', { title: 'Eliminar bracket' })
+    const ok = await confirm('¿Eliminar todos los brackets de este torneo? Los marcadores y ganadores registrados se perderán.', { title: 'Eliminar brackets' })
     if (!ok) return
-    const { error } = await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
+    const { error } = await supabase.from('tournament_brackets').delete().eq('tournament_id', selectedId)
     if (error) return toast('Error: ' + error.message, 'err')
     await reloadData()
-    toast('Bracket eliminado', 'ok')
+    toast('Brackets eliminados', 'ok')
+  }
+
+  function resizeBracketCount(value) {
+    const count = Math.max(1, Math.min(12, Number(value) || 1))
+    setBracketConfigs((current) => Array.from({ length: count }, (_, index) => current[index] || {
+      name: `Bracket ${index + 1}`,
+      teamCount: '',
+    }))
+  }
+
+  function updateBracketConfig(index, field, value) {
+    setBracketConfigs((current) => current.map((config, i) => i === index ? { ...config, [field]: value } : config))
+  }
+
+  function readBracketSetup() {
+    return bracketConfigs.map((config, index) => {
+      const teamCount = Number(config.teamCount)
+      return {
+        name: config.name.trim() || `Bracket ${index + 1}`,
+        teamCount,
+        slotCount: Number.isFinite(teamCount) && teamCount > 0 ? nextPowerOfTwoAtLeast(teamCount) : 0,
+      }
+    })
   }
 
   async function handleGenerate() {
-    const ids = Object.keys(checked).filter((id) => checked[id])
-    if (ids.length < 2) return toast('Selecciona al menos 2 equipos', 'err')
+    const selectedCount = teams.filter((team) => checked[team.id]).length
+    const setup = readBracketSetup()
+    if (setup.some((bracket) => !Number.isInteger(bracket.teamCount) || bracket.teamCount < 2)) {
+      return toast('Cada bracket debe tener al menos 2 equipos', 'err')
+    }
+    const configuredCount = setup.reduce((sum, bracket) => sum + bracket.teamCount, 0)
+    if (configuredCount !== selectedCount) {
+      return toast(`Los brackets suman ${configuredCount} equipos, pero seleccionaste ${selectedCount}. Ajusta las cantidades para que coincidan.`, 'err')
+    }
     setPreviewOpen(true)
   }
 
   async function confirmGenerate() {
-    const ids = Object.keys(checked).filter((id) => checked[id])
-    const totalSlots = nextPowerOfTwoAtLeast(ids.length)
-    const byeCount = totalSlots - ids.length
+    const ids = teams.filter((team) => checked[team.id]).map((team) => team.id)
+    const setup = readBracketSetup()
     setPreviewOpen(false)
     setBusy(true)
+    let createdBracketIds = []
     try {
-      await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
-      const rows = buildBracketRows(selectedId, ids)
-      // La primera ronda se genera VACÍA: el admin decide quién va contra
-      // quién arrastrando los equipos desde la lista de abajo. Solo los
-      // casilleros que son BYE en la siembra nacen ya marcados como 'BYE'
-      // (el rival avanza automáticamente cuando el admin ubique un equipo
-      // en el otro casillero del cruce). El resto queda en null.
-      const slots = distributeByes(ids, totalSlots)
-      const half = totalSlots / 2
-      const leftSlots = slots.slice(0, half)
-      const rightSlots = slots.slice(half)
-      const rowsWithByes = rows.map((r) => {
-        if (r.round_number !== 1) return r
-        if (r.side === 'izquierda') {
-          const i = r.match_index
-          const t1 = leftSlots[2 * i]
-          const t2 = leftSlots[2 * i + 1]
-          return { ...r, team1_id: t1 === 'BYE' ? 'BYE' : null, team2_id: t2 === 'BYE' ? 'BYE' : null }
-        }
-        if (r.side === 'derecha') {
-          const i = r.match_index
-          const t1 = rightSlots[2 * i]
-          const t2 = rightSlots[2 * i + 1]
-          return { ...r, team1_id: t1 === 'BYE' ? 'BYE' : null, team2_id: t2 === 'BYE' ? 'BYE' : null }
-        }
-        return r
+      const teamGroups = []
+      let cursor = 0
+      setup.forEach((bracket) => {
+        teamGroups.push(ids.slice(cursor, cursor + bracket.teamCount))
+        cursor += bracket.teamCount
       })
-      const { error: insertErr } = await supabase.from('bracket_matches').insert(rowsWithByes)
+
+      const { data: createdBrackets, error: bracketErr } = await supabase
+        .from('tournament_brackets')
+        .insert(setup.map((bracket, index) => ({
+          tournament_id: selectedId,
+          name: bracket.name,
+          sort_order: index + 1,
+          team_count: bracket.teamCount,
+          team_ids: teamGroups[index],
+        })))
+        .select()
+      if (bracketErr) throw bracketErr
+      const orderedBrackets = [...(createdBrackets || [])].sort((a, b) => a.sort_order - b.sort_order)
+      createdBracketIds = orderedBrackets.map((bracket) => bracket.id)
+
+      const rows = orderedBrackets.flatMap((bracket, index) => {
+        const groupIds = teamGroups[index]
+        const totalSlots = nextPowerOfTwoAtLeast(groupIds.length)
+        const slots = distributeByes(groupIds, totalSlots)
+        const half = totalSlots / 2
+        const leftSlots = slots.slice(0, half)
+        const rightSlots = slots.slice(half)
+        return buildBracketRows(selectedId, groupIds).map((row) => {
+          const withBracket = { ...row, bracket_id: bracket.id }
+          if (row.round_number !== 1 || row.side === 'final') return withBracket
+          const roundSlots = row.side === 'izquierda' ? leftSlots : rightSlots
+          const team1 = roundSlots[2 * row.match_index]
+          const team2 = roundSlots[2 * row.match_index + 1]
+          return {
+            ...withBracket,
+            team1_id: team1 === 'BYE' ? 'BYE' : null,
+            team2_id: team2 === 'BYE' ? 'BYE' : null,
+          }
+        })
+      })
+      const { error: insertErr } = await supabase.from('bracket_matches').insert(rows)
       if (insertErr) throw insertErr
+
+      const oldBracketIds = brackets.map((bracket) => bracket.id).filter((id) => !createdBracketIds.includes(id))
+      if (oldBracketIds.length) {
+        const { error: deleteErr } = await supabase.from('tournament_brackets').delete().in('id', oldBracketIds)
+        if (deleteErr) throw deleteErr
+      }
       await reloadData()
-      const byeNote = byeCount > 0 ? ` (${byeCount} BYE)` : ''
-      toast(`Bracket generado${byeNote}: arrastra los ${ids.length} equipos a los casilleros desde la pestaña Bracket`, 'ok')
+      toast(`${setup.length} bracket${setup.length === 1 ? '' : 's'} generado${setup.length === 1 ? '' : 's'}: arrastra los equipos a los casilleros de cada cuadro desde la pestaña Bracket`, 'ok')
     } catch (e) {
+      if (createdBracketIds.length) {
+        await supabase.from('tournament_brackets').delete().in('id', createdBracketIds)
+      }
       toast('Error: ' + e.message, 'err')
     } finally {
       setBusy(false)
@@ -314,10 +371,11 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
     <>
       <BracketGenerationPreview
         open={previewOpen}
-        teamCount={Object.values(checked).filter(Boolean).length}
-        slotCount={nextPowerOfTwoAtLeast(Object.values(checked).filter(Boolean).length)}
-        detail="Los equipos quedarán disponibles para ubicarlos manualmente en los cruces de la primera ronda."
-        warning={matches.length ? 'El bracket actual y sus resultados se reemplazarán.' : Object.values(checked).filter(Boolean).length !== nextPowerOfTwoAtLeast(Object.values(checked).filter(Boolean).length) ? 'Los espacios BYE permiten que algunos equipos avancen sin jugar la primera ronda.' : null}
+        title="Resumen de brackets"
+        teamCount={teams.filter((team) => checked[team.id]).length}
+        bracketDetails={readBracketSetup()}
+        detail="Los equipos seleccionados se reparten entre los brackets en el orden de la lista y quedarán disponibles para ubicarlos en cada cuadro."
+        warning={matches.length ? 'Los brackets actuales, sus marcadores y ganadores se reemplazarán.' : null}
         busy={busy}
         onCancel={() => setPreviewOpen(false)}
         onConfirm={confirmGenerate}
@@ -453,8 +511,8 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
       </div>
 
       <div className="card">
-        <h3>Equipos del torneo ({teams.length}) — generar bracket</h3>
-        <p className="mini">Selecciona los equipos que participarán. Si la cantidad no es potencia de 2 (p. ej. 5, 6, 12, 17…) se completa automáticamente con <strong>BYE</strong>: esos huecos hacen que el rival avance a la siguiente ronda sin jugar el cruce.</p>
+        <h3>Equipos del torneo ({teams.length}) — generar brackets</h3>
+        <p className="mini">Selecciona los equipos participantes y define cuántos brackets quieres. Indica cuántos equipos van en cada uno; si a un bracket le faltan equipos para completar una potencia de 2, se añaden casillas <strong>BYE</strong>.</p>
         <div className="check-grid">
           {teams.map((t) => (
             <label key={t.id}>
@@ -463,9 +521,55 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
             </label>
           ))}
         </div>
+        <div className="bracket-setup">
+          <div className="field bracket-setup__count">
+            <label htmlFor="bracket-count">¿Cuántos brackets vas a crear?</label>
+            <input
+              id="bracket-count"
+              type="number"
+              min="1"
+              max="12"
+              value={bracketConfigs.length}
+              onChange={(event) => resizeBracketCount(event.target.value)}
+            />
+          </div>
+          <div className="bracket-setup__list">
+            {bracketConfigs.map((bracket, index) => (
+              <div className="bracket-setup__item" key={index}>
+                <div className="field">
+                  <label htmlFor={`bracket-name-${index}`}>Nombre del bracket {index + 1}</label>
+                  <input
+                    id={`bracket-name-${index}`}
+                    value={bracket.name}
+                    onChange={(event) => updateBracketConfig(index, 'name', event.target.value)}
+                    placeholder={`Bracket ${index + 1}`}
+                  />
+                </div>
+                <div className="field">
+                  <label htmlFor={`bracket-teams-${index}`}>Equipos en este bracket</label>
+                  <input
+                    id={`bracket-teams-${index}`}
+                    type="number"
+                    min="2"
+                step="1"
+                    max={teams.filter((team) => checked[team.id]).length}
+                    value={bracket.teamCount}
+                    onChange={(event) => updateBracketConfig(index, 'teamCount', event.target.value)}
+                  />
+                </div>
+                <p className="mini bracket-setup__bye">
+                  {Number(bracket.teamCount) >= 2
+                    ? `${nextPowerOfTwoAtLeast(Number(bracket.teamCount)) - Number(bracket.teamCount)} BYE`
+                    : 'Mínimo 2 equipos'}
+                </p>
+              </div>
+            ))}
+          </div>
+          <p className="mini">Seleccionados: <strong>{teams.filter((team) => checked[team.id]).length}</strong> equipos. La suma de las cantidades debe coincidir con este total.</p>
+        </div>
         <div className="action-row">
-          <button className="btn ghost" onClick={handleGenerate} disabled={busy}>Generar / regenerar bracket</button>
-          <button className="pill-btn danger" onClick={handleClearBracket} disabled={busy || !matches.length}>Eliminar bracket</button>
+          <button className="btn ghost" onClick={handleGenerate} disabled={busy}>Generar / regenerar brackets</button>
+          <button className="pill-btn danger" onClick={handleClearBracket} disabled={busy || !matches.length}>Eliminar brackets</button>
         </div>
         <table style={{ marginTop: 16 }}>
           <thead><tr><th></th><th>Equipo</th><th>Grupo</th><th>Estado</th><th></th></tr></thead>

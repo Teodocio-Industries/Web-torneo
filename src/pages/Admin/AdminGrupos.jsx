@@ -17,7 +17,7 @@ function tierBadgeClass(tier) {
   return 'badge san'
 }
 
-export default function AdminGrupos({ selectedId, teams, standings, matches, reloadData }) {
+export default function AdminGrupos({ selectedId, teams, standings, matches, brackets = [], reloadData }) {
   const toast = useToast()
   const [perGroup, setPerGroup] = useState(2)
   const [bestThirds, setBestThirds] = useState(2)
@@ -77,11 +77,30 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
     const total = result.qualifiers.length
     setPreviewOpen(false)
     setBusy(true)
+    let newBracketId = null
     try {
-      await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
-      const rows = buildQualifiedBracketRows(selectedId, result.qualifiers)
+      const { data: bracket, error: bracketErr } = await supabase
+        .from('tournament_brackets')
+        .insert({
+          tournament_id: selectedId,
+          name: 'Bracket 1',
+          sort_order: 1,
+          team_count: total,
+          team_ids: result.qualifiers.map((q) => q.team_id),
+        })
+        .select()
+        .single()
+      if (bracketErr) throw bracketErr
+      newBracketId = bracket.id
+      const rows = buildQualifiedBracketRows(selectedId, result.qualifiers).map((row) => ({ ...row, bracket_id: bracket.id }))
       const { error } = await supabase.from('bracket_matches').insert(rows)
       if (error) throw error
+
+      const oldBracketIds = brackets.map((item) => item.id).filter((id) => id !== bracket.id)
+      if (oldBracketIds.length) {
+        const { error: deleteErr } = await supabase.from('tournament_brackets').delete().in('id', oldBracketIds)
+        if (deleteErr) throw deleteErr
+      }
 
       const qualifiedIds = new Set(result.qualifiers.map((q) => q.team_id))
       const eliminatedIds = result.eliminated.map((e) => e.team_id)
@@ -93,6 +112,7 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
       await reloadData()
       toast('Cuadro de eliminación generado a partir de la fase de grupos', 'ok')
     } catch (e) {
+      if (newBracketId) await supabase.from('tournament_brackets').delete().eq('id', newBracketId)
       toast('Error: ' + e.message, 'err')
     } finally {
       setBusy(false)
@@ -146,7 +166,7 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
         )}
         {matches.length > 0 && (
           <p className="mini" style={{ color: 'var(--rojo, #ff4d4d)' }}>
-            Ya existe un bracket para este torneo. Generar aquí lo reemplazará por completo.
+            Ya existe uno o más brackets para este torneo. Generar aquí los reemplazará por un solo bracket de eliminación.
           </p>
         )}
       </div>

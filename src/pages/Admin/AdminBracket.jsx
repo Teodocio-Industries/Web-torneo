@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
 import { computeNextSlot, findMatch, aggregateScore, isMultiLeg } from '../../lib/bracket'
@@ -20,13 +20,25 @@ async function resetForward(matches, match) {
   }
 }
 
-export default function AdminBracket({ matches, teams, tournaments, selectedId, reloadData }) {
+export default function AdminBracket({ matches: allMatches, teams, tournaments, brackets = [], selectedId, reloadData }) {
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   // "Fijar equipos": una vez ubicados con arrastrar y soltar, este botón bloquea
   // el cuadro para que nadie los mueva sin querer. Se puede volver a editar
   // pulsando el mismo botón otra vez.
   const [locked, setLocked] = useState(false)
+  const [activeBracketId, setActiveBracketId] = useState(null)
+
+  useEffect(() => {
+    setActiveBracketId((current) => brackets.some((bracket) => bracket.id === current)
+      ? current
+      : brackets[0]?.id || null)
+  }, [brackets, selectedId])
+
+  useEffect(() => { setLocked(false) }, [activeBracketId, selectedId])
+
+  const activeBracket = brackets.find((bracket) => bracket.id === activeBracketId) || brackets[0]
+  const matches = allMatches.filter((match) => match.bracket_id === activeBracket?.id)
 
   async function handleScoreChange(match, field, value) {
     const v = value === '' ? null : Math.max(0, parseInt(value, 10) || 0)
@@ -295,7 +307,9 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
     if (m.team1_id) placedIds.add(m.team1_id)
     if (m.team2_id) placedIds.add(m.team2_id)
   })
-  const poolTeams = teams.filter((t) => !placedIds.has(t.id))
+  const bracketTeamIds = activeBracket?.team_ids || []
+  const eligibleTeams = bracketTeamIds.length ? teams.filter((team) => bracketTeamIds.includes(team.id)) : teams
+  const poolTeams = eligibleTeams.filter((t) => !placedIds.has(t.id))
   const tournamentName = tournaments?.find((t) => t.id === selectedId)?.name
 
   // Rondas presentes (Final, Semifinal, Cuartos…), de la última a la primera,
@@ -307,6 +321,23 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
 
   return (
     <>
+      {brackets.length > 1 && (
+        <div className="card admin-bracket-picker">
+          <h3>Elige el bracket que vas a editar</h3>
+          <div className="admin-bracket-picker__list">
+            {brackets.map((bracket, index) => (
+              <button
+                key={bracket.id}
+                type="button"
+                className={`pill-btn ${bracket.id === activeBracket?.id ? 'on' : ''}`}
+                onClick={() => { setActiveBracketId(bracket.id); setLocked(false) }}
+              >
+                {bracket.name || `Bracket ${index + 1}`} · {bracket.team_count || bracket.team_ids?.length || 0} equipos
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="card">
         <h3>Formato de cada ronda</h3>
         <p className="mini">
@@ -353,6 +384,7 @@ export default function AdminBracket({ matches, teams, tournaments, selectedId, 
         matches={matches}
         teams={teams}
         tournamentName={tournamentName}
+        bracketName={`${activeBracket?.name || 'Bracket'} · ${tournamentName || ''}`}
         editable
         dragEnabled={!locked}
         poolTeams={poolTeams}
