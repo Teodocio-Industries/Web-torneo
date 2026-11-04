@@ -344,13 +344,11 @@ export default function AdminBracket({ matches: allMatches, teams, tournaments, 
   if (!matches.length) return <div className="empty">Genera el bracket primero desde la pestaña Equipos.</div>
 
   const placedIds = new Set()
-  matches.forEach((m) => {
+  allMatches.forEach((m) => {
     if (m.team1_id) placedIds.add(m.team1_id)
     if (m.team2_id) placedIds.add(m.team2_id)
   })
-  const bracketTeamIds = activeBracket?.team_ids || []
-  const eligibleTeams = bracketTeamIds.length ? teams.filter((team) => bracketTeamIds.includes(team.id)) : teams
-  const poolTeams = eligibleTeams.filter((t) => !placedIds.has(t.id))
+  const poolTeams = teams.filter((team) => !placedIds.has(team.id))
   const tournamentName = tournaments?.find((t) => t.id === selectedId)?.name
 
   // Rondas presentes (Final, Semifinal, Cuartos…), de la última a la primera,

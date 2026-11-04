@@ -507,7 +507,7 @@ export default function Bracket({
 
       {dragEnabled && (
         <div className="bracket-pool">
-          <h3>Equipos del torneo ({poolTeams.length} por ubicar)</h3>
+          <h3>Equipos disponibles para todos los brackets ({poolTeams.length} por ubicar)</h3>
           <p className="mini">Arrastra cada equipo hacia un casillero vacío (o hacia un BYE) de la primera ronda para ubicarlo en el cuadro. Si hay cruces con BYE, al colocar el equipo rival ese equipo avanza automáticamente.</p>
           <div className="bracket-pool__list">
             {poolTeams.map((t) => (
