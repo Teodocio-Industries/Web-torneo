@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useToast } from '../../components/Toast/Toast'
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmDialog'
 import { computeQualifiers, buildQualifiedBracketRows, isValidBracketSize, suggestGroupFormat } from '../../lib/bracket'
+import BracketGenerationPreview from '../../components/Bracket/BracketGenerationPreview'
 
 const TIER_LABEL = {
   group_winner: '1° de grupo',
@@ -19,10 +19,10 @@ function tierBadgeClass(tier) {
 
 export default function AdminGrupos({ selectedId, teams, standings, matches, reloadData }) {
   const toast = useToast()
-  const confirm = useConfirm()
   const [perGroup, setPerGroup] = useState(2)
   const [bestThirds, setBestThirds] = useState(2)
   const [busy, setBusy] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   const result = useMemo(() => {
     if (!standings.length) return null
@@ -69,11 +69,13 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
       toast(`Con esta configuración clasifican ${total} equipos, que no es potencia de 2. Ajusta "mejores terceros" para que la suma sea 2, 4, 8 o 16.`, 'err')
       return
     }
-    const ok = await confirm(
-      `Se generará el cuadro de eliminación (Cuartos → Semifinal → Final) con los ${total} equipos clasificados, ya ubicados según su cruce, y se reemplazará cualquier bracket existente. Los equipos no clasificados quedarán marcados como eliminados. ¿Continuar?`,
-      { title: 'Generar cuadro de eliminación' }
-    )
-    if (!ok) return
+    setPreviewOpen(true)
+  }
+
+  async function confirmGenerate() {
+    if (!result) return
+    const total = result.qualifiers.length
+    setPreviewOpen(false)
     setBusy(true)
     try {
       await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
@@ -99,6 +101,16 @@ export default function AdminGrupos({ selectedId, teams, standings, matches, rel
 
   return (
     <>
+      <BracketGenerationPreview
+        open={previewOpen}
+        teamCount={result?.qualifiers.length || 0}
+        title="Cuadro de eliminación"
+        detail="Los clasificados quedarán ubicados automáticamente según su posición y grupo."
+        warning={matches.length ? 'El bracket actual y sus resultados se reemplazarán. Los equipos no clasificados quedarán marcados como eliminados.' : 'Los equipos no clasificados quedarán marcados como eliminados.'}
+        busy={busy}
+        onCancel={() => setPreviewOpen(false)}
+        onConfirm={confirmGenerate}
+      />
       <div className="card">
         <h3>Clasificación desde la fase de grupos</h3>
         <p className="mini">

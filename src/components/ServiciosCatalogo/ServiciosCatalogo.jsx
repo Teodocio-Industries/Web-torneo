@@ -54,8 +54,12 @@ function PagoRango({ asignacion, settings, nombreRango, nombrePersona, puedeCont
     <div className="tier-card__pago">
       <div className="tier-card__pago-head">
         <div>
-          <span className="tier-card__pago-label">Tu precio acordado</span>
-          <strong className="tier-card__precio">{asignacion.price > 0 ? formatoCOP(asignacion.price) : 'Por confirmar'}</strong>
+          <span className="tier-card__pago-label">
+            {asignacion.price > 0 ? 'Tu precio acordado' : pagado ? 'Acceso al rango' : 'Precio acordado'}
+          </span>
+          <strong className="tier-card__precio">
+            {asignacion.price > 0 ? formatoCOP(asignacion.price) : pagado ? 'Activado' : 'Por confirmar'}
+          </strong>
         </div>
         <span className={`badge ${pagado ? 'ok' : 'status-pendiente'}`}>{pagado ? 'Pagado' : 'Pendiente de pago'}</span>
       </div>

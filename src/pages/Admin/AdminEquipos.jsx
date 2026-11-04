@@ -10,6 +10,7 @@ import { uploadFile, esUrlImagenSegura } from '../../lib/storage'
 import ConsentCheck from '../../components/ConsentCheck/ConsentCheck'
 import { buildBracketRows, distributeByes, nextPowerOfTwoAtLeast } from '../../lib/bracket'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
+import BracketGenerationPreview from '../../components/Bracket/BracketGenerationPreview'
 
 const EMPTY = { name: '', group: '', url: '' }
 
@@ -32,6 +33,7 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
   const [editingId, setEditingId] = useState(null)
   const [checked, setChecked] = useState({})
   const [busy, setBusy] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
 
   // ------- biblioteca de equipos (reutilizable entre torneos) -------
   const [catalogTeams, setCatalogTeams] = useState([])
@@ -127,13 +129,15 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
   async function handleGenerate() {
     const ids = Object.keys(checked).filter((id) => checked[id])
     if (ids.length < 2) return toast('Selecciona al menos 2 equipos', 'err')
+    setPreviewOpen(true)
+  }
+
+  async function confirmGenerate() {
+    const ids = Object.keys(checked).filter((id) => checked[id])
     const totalSlots = nextPowerOfTwoAtLeast(ids.length)
     const byeCount = totalSlots - ids.length
-    const confirmMsg = byeCount > 0
-      ? `Se generará el bracket con ${ids.length} equipos + ${byeCount} casillero(s) BYE (total ${totalSlots} cruces en primera ronda). Los huecos BYE hacen que el rival avance automáticamente. ¿Continuar?`
-      : `Se regenerará el bracket completo con ${ids.length} equipos, dejando todos los cruces vacíos para que los ubiques arrastrando. ¿Continuar?`
-    const ok = await confirm(confirmMsg, { title: 'Regenerar bracket' })
-    if (!ok) return
+    setPreviewOpen(false)
+    setBusy(true)
     try {
       await supabase.from('bracket_matches').delete().eq('tournament_id', selectedId)
       const rows = buildBracketRows(selectedId, ids)
@@ -169,6 +173,8 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
       toast(`Bracket generado${byeNote}: arrastra los ${ids.length} equipos a los casilleros desde la pestaña Bracket`, 'ok')
     } catch (e) {
       toast('Error: ' + e.message, 'err')
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -306,6 +312,16 @@ export default function AdminEquipos({ selectedId, teams, matches = [], reloadDa
 
   return (
     <>
+      <BracketGenerationPreview
+        open={previewOpen}
+        teamCount={Object.values(checked).filter(Boolean).length}
+        slotCount={nextPowerOfTwoAtLeast(Object.values(checked).filter(Boolean).length)}
+        detail="Los equipos quedarán disponibles para ubicarlos manualmente en los cruces de la primera ronda."
+        warning={matches.length ? 'El bracket actual y sus resultados se reemplazarán.' : Object.values(checked).filter(Boolean).length !== nextPowerOfTwoAtLeast(Object.values(checked).filter(Boolean).length) ? 'Los espacios BYE permiten que algunos equipos avancen sin jugar la primera ronda.' : null}
+        busy={busy}
+        onCancel={() => setPreviewOpen(false)}
+        onConfirm={confirmGenerate}
+      />
       <div className="card">
         <h3>Biblioteca de equipos (reutilizable entre torneos)</h3>
         <p className="mini">

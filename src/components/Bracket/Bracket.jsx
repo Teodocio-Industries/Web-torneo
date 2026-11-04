@@ -113,11 +113,10 @@ function computeLayout(matches, teams = []) {
   sides.forEach((side) => {
     const roundNums = [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
     const R = roundNums.length
+    const baseMatchCount = matches.filter((m) => m.side === side && m.round_number === roundNums[0]).length
     const SIDE_W = sideWidth[side]
     roundNums.forEach((rn, i) => {
       const roundMatches = matches.filter((m) => m.side === side && m.round_number === rn).sort((a, b) => a.match_index - b.match_index)
-      const N = roundMatches.length
-
       let colLeft, colRight
       if (side === 'izquierda') {
         colLeft = (i / R) * SIDE_W
@@ -133,7 +132,11 @@ function computeLayout(matches, teams = []) {
       const edgeX = side === 'izquierda' ? colRight - pad : colLeft + pad
 
       roundMatches.forEach((m, idx) => {
-        const centerY = TOP_RESERVED + ((idx + 0.5) / N) * USABLE_H
+        // Mantén cada ronda sobre el centro de los dos cruces que la alimentan.
+        // Una distribución uniforme por columna desalineaba las ramas en rondas
+        // posteriores, aunque los conectores usaran los índices correctos.
+        const roundScale = 2 ** i
+        const centerY = TOP_RESERVED + (((idx + 0.5) * roundScale) / baseMatchCount) * USABLE_H
         layout[m.id] = { left, width, edgeX, centerY, side, colLeft, colRight, roundIndex: i, roundCount: R }
       })
     })
@@ -262,7 +265,7 @@ function TeamBox({
 }
 
 export default function Bracket({
-  matches, teams, tournamentName, myTeamId,
+  matches, teams, tournamentName, bracketName, myTeamId,
   editable = false, onScoreChange, onFinalize, onReopen,
   dragEnabled = false, poolTeams = [], onDropTeam, onRemoveSlot,
   onSaveScore, onFinalizeFromModal,
@@ -370,7 +373,7 @@ export default function Bracket({
       <div className="bracket-hero__header">
         <p className="bracket-hero__eyebrow">Caribe Sports Events</p>
         <h2 className="bracket-hero__title">Cuadro de <span>Cruces</span></h2>
-        <p className="bracket-hero__subtitle">{tournamentName}</p>
+        <p className="bracket-hero__subtitle">{bracketName || tournamentName}</p>
       </div>
 
       <div className="bracket-frame-scroll">
@@ -428,7 +431,7 @@ export default function Bracket({
                   <TeamBox
                     team={t1} match={m} which="team1" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                     onOpenScoreModal={openScoreModal}
-                    style={{ left: `${pos.left}%`, minWidth: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team1')}%` }}
+                    style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team1')}%` }}
                     dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                     isByeSlot={t1IsBye}
                   />
@@ -437,7 +440,7 @@ export default function Bracket({
                   <TeamBox
                     team={t2} match={m} which="team2" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                     onOpenScoreModal={openScoreModal}
-                    style={{ left: `${pos.left}%`, minWidth: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team2')}%` }}
+                    style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team2')}%` }}
                     dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                     isByeSlot={t2IsBye}
                   />

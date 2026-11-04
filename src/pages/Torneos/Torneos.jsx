@@ -52,6 +52,7 @@ export default function Torneos() {
   useRealtimeRefresh(['tournaments'], loadTournaments, [loadTournaments])
 
   const selected = tournaments.find((t) => t.id === selectedId)
+  const selectedBracketNumber = tournaments.findIndex((t) => t.id === selectedId) + 1
   const myTeamId = myPlayers.find((mp) => mp.tournament_id === selectedId)?.team_id || null
   const groups = [...new Set(standings.map((s) => s.group_name))]
 
@@ -63,7 +64,11 @@ export default function Torneos() {
         <section className="torneos-encabezado">
           <p className="eyebrow">Caribe Sports Events</p>
           <h1>Torneos</h1>
-          <p className="mini">Elige un torneo para ver su cuadro de cruces, tabla y estadísticas en vivo.</p>
+          <p className="mini">
+            {tab === 'bracket'
+              ? 'Elige un bracket para ver sus cruces y resultados en vivo.'
+              : 'Elige un torneo para ver su cuadro de cruces, tabla y estadísticas en vivo.'}
+          </p>
         </section>
 
         {tournaments.length === 0 ? (
@@ -71,14 +76,17 @@ export default function Torneos() {
         ) : (
           <>
             <div className="lista-torneos">
-              {tournaments.map((t) => (
+              {tournaments.map((t, index) => (
                 <button
                   key={t.id}
-                  className={`tarjeta-torneo ${t.id === selectedId ? 'is-active' : ''}`}
+                  className={`tarjeta-torneo ${tab === 'bracket' ? 'tarjeta-torneo--bracket' : ''} ${t.id === selectedId ? 'is-active' : ''}`}
                   onClick={() => setSelectedId(t.id)}
+                  aria-pressed={t.id === selectedId}
                 >
                   {t.image_url && <img src={t.image_url} alt="" className="tarjeta-torneo__img" />}
-                  <span className="tarjeta-torneo__estado">{t.is_active ? 'ACTIVO' : 'INACTIVO'}</span>
+                  <span className="tarjeta-torneo__estado">
+                    {tab === 'bracket' ? `BRACKET ${index + 1}` : t.is_active ? 'ACTIVO' : 'INACTIVO'}
+                  </span>
                   <h3>{t.name}</h3>
                   {t.description && <p>{t.description}</p>}
                 </button>
@@ -95,7 +103,13 @@ export default function Torneos() {
       </div>
 
       {tournaments.length > 0 && tab === 'bracket' && (
-        <Bracket matches={matches} teams={teams} tournamentName={selected?.name} myTeamId={myTeamId} />
+        <Bracket
+          matches={matches}
+          teams={teams}
+          tournamentName={selected?.name}
+          bracketName={`Bracket ${selectedBracketNumber} · ${selected?.name || ''}`}
+          myTeamId={myTeamId}
+        />
       )}
 
       {tournaments.length > 0 && tab === 'tabla' && (

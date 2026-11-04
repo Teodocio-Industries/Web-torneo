@@ -149,6 +149,7 @@
   transform: translateY(-50%);
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   gap: clamp(5px, 0.7vw, 9px);
   background: var(--panel-2);
   border: 1px solid var(--linea);
@@ -159,9 +160,8 @@
   font-weight: 600;
   color: var(--texto);
   white-space: nowrap;
-  overflow: visible;
-  width: max-content;        /* la caja crece al ancho del nombre */
-  max-width: none;
+  overflow: hidden;
+  min-width: 0;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   z-index: 3;
 }
@@ -190,7 +190,8 @@
 .team-box__name {
   flex: 0 1 auto;
   white-space: nowrap;       /* nombre en 1 línea */
-  overflow: visible;         /* sin recorte, sin ellipsis */
+  overflow: hidden;
+  text-overflow: ellipsis;
   min-width: 0;
 }
 .team-box__score {
