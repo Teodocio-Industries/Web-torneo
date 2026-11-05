@@ -9,6 +9,21 @@ import { VERSION_POLITICAS } from '../../config/negocio'
 const MIN_CLAVE = 10
 const VACIO_EDICION = { id: '', fullName: '', email: '', password: '', role: 'jugador', teamId: '' }
 
+async function detalleErrorFuncion(error) {
+  if (!error) return 'No se pudo completar la solicitud'
+
+  // Supabase entrega los errores 4xx/5xx como un FunctionsHttpError. El texto
+  // específico queda dentro de su respuesta, no en error.message.
+  try {
+    const payload = await error.context?.clone?.().json()
+    if (payload?.error) return payload.error
+  } catch {
+    // Si la respuesta no contiene JSON, se muestra el mensaje disponible.
+  }
+
+  return error.message || 'No se pudo completar la solicitud'
+}
+
 export default function AdminCuentas() {
   const toast = useToast()
   const confirm = useConfirm()
@@ -117,7 +132,7 @@ export default function AdminCuentas() {
       setEditing(VACIO_EDICION)
       await loadData()
     } catch (error) {
-      toast('Error al actualizar: ' + error.message, 'err')
+      toast('Error al actualizar: ' + await detalleErrorFuncion(error), 'err')
     } finally {
       setBusy(false)
     }
@@ -139,7 +154,7 @@ export default function AdminCuentas() {
       if (editing.id === account.id) setEditing(VACIO_EDICION)
       await loadData()
     } catch (error) {
-      toast('Error al eliminar: ' + error.message, 'err')
+      toast('Error al eliminar: ' + await detalleErrorFuncion(error), 'err')
     } finally {
       setBusy(false)
     }
