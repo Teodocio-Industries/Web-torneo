@@ -16,9 +16,8 @@ export function isBye(value) {
 const TOP_RESERVED = 9     // franja superior para las etiquetas de ronda
 const USABLE_H = 100 - TOP_RESERVED
 const COL_PAD_RATIO = 0.04 // margen interno de cada columna (más aire entre cajas)
-const STUB = 3.2           // largo del tramo horizontal corto de cada conector (mucho más separación)
 const MIN_COLS_PER_SIDE = 1 // cuántas rondas por lado como mínimo para reservar el ancho
-const FINAL_Y_RATIO = 0.16 // la Final va bien arriba, dejando todo el resto del espacio para el campeón
+const FINAL_Y_RATIO = 0.5 // ambas mitades confluyen en el centro del cuadro
 
 // El ancho reservado para CADA mitad del cuadro depende de cuántas rondas
 // tenga esa mitad y de cuánto ancho necesita el nombre más largo del bracket
@@ -26,15 +25,11 @@ const FINAL_Y_RATIO = 0.16 // la Final va bien arriba, dejando todo el resto del
 // ancho y subimos el porcentaje de cada mitad.
 function calcSideWidth(roundsPerSide, nameExtraPx = 0) {
   const r = Math.max(MIN_COLS_PER_SIDE, roundsPerSide || 0)
-  // Base: 12% por ronda (mucho más generoso) con piso de 36% y techo de
-  // 48%. Esto deja mucho más aire entre columnas para que las cajas no se
-  // solapen cuando crecen por nombres largos.
-  const base = Math.min(48, Math.max(36, 12 * r))
-  // Si el nombre más largo necesita más de ~140 px por columna, añadimos
-  // 1.2% del frame por cada 20 px extra (antes 0.9%).
+  // Reserva espacio en el centro para que las cajas de la Final no se aplasten.
+  const base = Math.min(40, Math.max(34, 10 * r))
   const extra = Math.max(0, nameExtraPx - 140)
-  const add = Math.min(15, Math.floor(extra / 20) * 1.2)
-  return Math.min(49, base + add)
+  const add = Math.min(6, Math.floor(extra / 20) * 1.2)
+  return Math.min(40.5, base + add)
 }
 
 function teamById(teams, id) {
@@ -113,11 +108,10 @@ function computeLayout(matches, teams = []) {
   sides.forEach((side) => {
     const roundNums = [...new Set(matches.filter((m) => m.side === side).map((m) => m.round_number))].sort((a, b) => a - b)
     const R = roundNums.length
+    const baseMatchCount = matches.filter((m) => m.side === side && m.round_number === roundNums[0]).length
     const SIDE_W = sideWidth[side]
     roundNums.forEach((rn, i) => {
       const roundMatches = matches.filter((m) => m.side === side && m.round_number === rn).sort((a, b) => a.match_index - b.match_index)
-      const N = roundMatches.length
-
       let colLeft, colRight
       if (side === 'izquierda') {
         colLeft = (i / R) * SIDE_W
@@ -133,7 +127,11 @@ function computeLayout(matches, teams = []) {
       const edgeX = side === 'izquierda' ? colRight - pad : colLeft + pad
 
       roundMatches.forEach((m, idx) => {
-        const centerY = TOP_RESERVED + ((idx + 0.5) / N) * USABLE_H
+        // Mantén cada ronda sobre el centro de los dos cruces que la alimentan.
+        // Una distribución uniforme por columna desalineaba las ramas en rondas
+        // posteriores, aunque los conectores usaran los índices correctos.
+        const roundScale = 2 ** i
+        const centerY = TOP_RESERVED + (((idx + 0.5) * roundScale) / baseMatchCount) * USABLE_H
         layout[m.id] = { left, width, edgeX, centerY, side, colLeft, colRight, roundIndex: i, roundCount: R }
       })
     })
@@ -262,7 +260,7 @@ function TeamBox({
 }
 
 export default function Bracket({
-  matches, teams, tournamentName, myTeamId,
+  matches, teams, tournamentName, bracketName, myTeamId,
   editable = false, onScoreChange, onFinalize, onReopen,
   dragEnabled = false, poolTeams = [], onDropTeam, onRemoveSlot,
   onSaveScore, onFinalizeFromModal,
@@ -292,10 +290,20 @@ export default function Bracket({
   const finalMatch = matches.find((m) => m.side === 'final')
   const liveMatch = matches.find((m) => uiStatus(m) === 'en_juego')
   const minFramePx = layout.__minFramePx || 820
+  const firstRoundCount = Math.max(
+    1,
+    ...['izquierda', 'derecha'].map((side) => {
+      const rounds = matches.filter((m) => m.side === side).map((m) => m.round_number)
+      if (!rounds.length) return 0
+      const firstRound = Math.min(...rounds)
+      return matches.filter((m) => m.side === side && m.round_number === firstRound).length
+    })
+  )
+  const minFrameHeight = Math.max(520, Math.ceil((firstRoundCount * 108) / (USABLE_H / 100)))
 
   // separación vertical entre las dos cajas de un mismo cruce, expresada
   // como % de la altura del marco (así conectores y cajas usan el mismo valor)
-  const GAP_PX = 24
+  const GAP_PX = 28
   const gapPct = (GAP_PX / frameH) * 100
 
   function boxTop(matchId, which) {
@@ -334,22 +342,24 @@ export default function Bracket({
       const pos = layout[m.id]
       const y1 = boxTop(m.id, 'team1')
       const y2 = boxTop(m.id, 'team2')
-      const stubX = pos.edgeX + (mirrored ? -STUB : STUB)
-
-      // conector corto que une las dos cajas del mismo cruce
-      lines.push({ d: `M ${pos.edgeX} ${y1} H ${stubX} V ${y2} H ${pos.edgeX}`, final: false })
-
       const next = computeNextSlot(matches, m)
-      if (!next) return
-      const nextMatch = findMatch(matches, next.round_number, next.side, next.match_index)
-      if (!nextMatch) return
+      const nextMatch = next && findMatch(matches, next.round_number, next.side, next.match_index)
+      if (!nextMatch) {
+        const fallbackStub = pos.edgeX + (mirrored ? -1 : 1) * 1.2
+        lines.push({ d: `M ${pos.edgeX} ${y1} H ${fallbackStub} V ${y2} H ${pos.edgeX}`, final: false })
+        return
+      }
       const nextPos = layout[nextMatch.id]
       const nextWhich = next.slotField === 'team1_id' ? 'team1' : 'team2'
       const targetY = boxTop(nextMatch.id, nextWhich)
       const targetX = mirrored ? nextPos.left + nextPos.width : nextPos.left
       const midY = (y1 + y2) / 2
-      const midX = (stubX + targetX) / 2
-      lines.push({ d: `M ${stubX} ${midY} H ${midX} V ${targetY} H ${targetX}`, final: nextMatch === finalMatch })
+      // Sitúa el nodo de salida dentro del espacio entre columnas. Así las
+      // ramas avanzan hacia la siguiente ronda sin sobrepasarla y devolverse.
+      const pairStubX = pos.edgeX + (targetX - pos.edgeX) * 0.24
+      const midX = (pairStubX + targetX) / 2
+      lines.push({ d: `M ${pos.edgeX} ${y1} H ${pairStubX} V ${y2} H ${pos.edgeX}`, final: false })
+      lines.push({ d: `M ${pairStubX} ${midY} H ${midX} V ${targetY} H ${targetX}`, final: nextMatch === finalMatch })
     })
   })
 
@@ -370,11 +380,11 @@ export default function Bracket({
       <div className="bracket-hero__header">
         <p className="bracket-hero__eyebrow">Caribe Sports Events</p>
         <h2 className="bracket-hero__title">Cuadro de <span>Cruces</span></h2>
-        <p className="bracket-hero__subtitle">{tournamentName}</p>
+        <p className="bracket-hero__subtitle">{bracketName || tournamentName}</p>
       </div>
 
       <div className="bracket-frame-scroll">
-        <div className="bracket-frame" ref={frameRef} style={{ minWidth: `${minFramePx}px` }}>
+        <div className="bracket-frame" ref={frameRef} style={{ minWidth: `${minFramePx}px`, minHeight: `${minFrameHeight}px` }}>
           <svg className="bracket-connectors" viewBox="0 0 100 100" preserveAspectRatio="none">
             {lines.map((l, i) => (
               <path key={i} className={`bracket-line ${l.final ? 'bracket-line--final' : ''}`} d={l.d} vectorEffect="non-scaling-stroke" />
@@ -428,7 +438,7 @@ export default function Bracket({
                   <TeamBox
                     team={t1} match={m} which="team1" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                     onOpenScoreModal={openScoreModal}
-                    style={{ left: `${pos.left}%`, minWidth: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team1')}%` }}
+                    style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team1')}%` }}
                     dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                     isByeSlot={t1IsBye}
                   />
@@ -437,7 +447,7 @@ export default function Bracket({
                   <TeamBox
                     team={t2} match={m} which="team2" myTeamId={myTeamId} editable={editable} onScoreChange={onScoreChange}
                     onOpenScoreModal={openScoreModal}
-                    style={{ left: `${pos.left}%`, minWidth: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team2')}%` }}
+                    style={{ left: `${pos.left}%`, width: `${pos.width}%`, top: `${effectiveBoxTop(m, 'team2')}%` }}
                     dragEnabled={dragEnabled} isDropSlot={isDropSlot} onDropTeam={onDropTeam} onRemoveSlot={onRemoveSlot}
                     isByeSlot={t2IsBye}
                   />
@@ -497,7 +507,7 @@ export default function Bracket({
 
       {dragEnabled && (
         <div className="bracket-pool">
-          <h3>Equipos del torneo ({poolTeams.length} por ubicar)</h3>
+          <h3>Equipos disponibles para todos los brackets ({poolTeams.length} por ubicar)</h3>
           <p className="mini">Arrastra cada equipo hacia un casillero vacío (o hacia un BYE) de la primera ronda para ubicarlo en el cuadro. Si hay cruces con BYE, al colocar el equipo rival ese equipo avanza automáticamente.</p>
           <div className="bracket-pool__list">
             {poolTeams.map((t) => (

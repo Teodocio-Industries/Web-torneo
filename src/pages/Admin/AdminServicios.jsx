@@ -87,6 +87,24 @@ export default function AdminServicios() {
     await loadAll()
   }
 
+  async function assignAndActivate(profileId, tierId) {
+    const cellKey = `${profileId}-${tierId}`
+    setBusyCell(cellKey)
+    const { error } = await supabase.from('tier_assignments').insert({
+      profile_id: profileId,
+      tier_id: tierId,
+      price: 0,
+      status: 'pagado',
+    })
+    setBusyCell(null)
+    if (error) {
+      toast('No se pudo asignar el rango: ' + error.message, 'err')
+      return
+    }
+    toast('Rango asignado y beneficios activados', 'ok')
+    await loadAll()
+  }
+
   async function removeAssign(assignment) {
     const ok = await confirm('¿Quitar este rango asignado? La cuenta dejará de ver la pantalla de pago para este servicio.', { title: 'Quitar rango' })
     if (!ok) return
@@ -148,9 +166,9 @@ export default function AdminServicios() {
         <div style={{ padding: 18 }}>
           <h3>Asignar rangos a cuentas</h3>
           <p className="mini">
-            Haz clic en "+ Asignar" junto a la cuenta y el rango, ingresa el precio acordado y guarda. La cuenta
-            verá su rango, el precio y los datos de pago apenas entre a "Servicios". Haz clic en el estado
-            (Pendiente/Pagado) para marcarlo cuando confirmes el comprobante.
+            Cuando confirmes la transferencia, pulsa "Asignar y activar" en el rango correspondiente. La cuenta
+            lo verá como pagado y tendrá activos sus beneficios; no necesitas ingresar un precio. Si quieres,
+            puedes registrar o corregir el valor después desde "Editar".
           </p>
         </div>
         {accounts.length === 0 ? (
@@ -201,18 +219,25 @@ export default function AdminServicios() {
                                 type="button"
                                 className={`badge ${current.status === 'pagado' ? 'ok' : 'status-pendiente'}`}
                                 onClick={() => toggleStatus(current)}
-                                title="Clic para cambiar entre pendiente y pagado"
+                                title="Clic para confirmar el pago y activar los beneficios, o cambiarlo a pendiente"
                               >
-                                {current.status === 'pagado' ? 'Pagado' : 'Pendiente'}
+                                {current.status === 'pagado' ? 'Activo · pagado' : 'Confirmar pago'}
                               </button>
-                              <span className="rango-chip__price">{formatCOP(current.price)}</span>
+                              {current.price > 0 && <span className="rango-chip__price">{formatCOP(current.price)}</span>}
                               <div className="rango-chip__actions">
                                 <button className="btn ghost small" onClick={() => startAssign(acc.id, tier.id, current)}>Editar</button>
                                 <button className="btn ghost small" onClick={() => removeAssign(current)}>Quitar</button>
                               </div>
                             </div>
                           ) : (
-                            <button className="btn ghost small" onClick={() => startAssign(acc.id, tier.id, null)}>+ Asignar</button>
+                            <button
+                              className="btn ghost small"
+                              disabled={busyCell === cellKey}
+                              onClick={() => assignAndActivate(acc.id, tier.id)}
+                              title="Asigna este rango como pagado y activa sus beneficios"
+                            >
+                              {busyCell === cellKey ? 'Asignando…' : 'Asignar y activar'}
+                            </button>
                           )}
                         </td>
                       )

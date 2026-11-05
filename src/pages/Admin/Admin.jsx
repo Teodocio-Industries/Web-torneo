@@ -30,6 +30,7 @@ export default function Admin() {
   const [tournaments, setTournaments] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [teams, setTeams] = useState([])
+  const [brackets, setBrackets] = useState([])
   const [matches, setMatches] = useState([])
   const [standings, setStandings] = useState([])
   const [players, setPlayers] = useState([])
@@ -46,13 +47,15 @@ export default function Admin() {
 
   const loadTournamentData = useCallback(async (tid) => {
     if (!tid) return
-    const [teamsRes, matchesRes, standingsRes, playersRes] = await Promise.all([
+    const [teamsRes, bracketsRes, matchesRes, standingsRes, playersRes] = await Promise.all([
       supabase.from('teams').select('*').eq('tournament_id', tid).order('name'),
+      supabase.from('tournament_brackets').select('*').eq('tournament_id', tid).order('sort_order'),
       supabase.from('bracket_matches').select('*').eq('tournament_id', tid).order('round_number'),
       supabase.from('standings').select('*, teams(name,flag_url)').eq('tournament_id', tid).order('group_name').order('pts', { ascending: false }),
       supabase.from('players').select('*, teams(name,flag_url)').eq('tournament_id', tid).order('full_name'),
     ])
     setTeams(teamsRes.data || [])
+    setBrackets(bracketsRes.data || [])
     setMatches(matchesRes.data || [])
     setStandings(standingsRes.data || [])
     setPlayers(playersRes.data || [])
@@ -69,7 +72,7 @@ export default function Admin() {
 
   const deleteTournament = useCallback(async (tournament) => {
     const confirmed = await confirm(
-      `¿Eliminar "${tournament.name}"? También se eliminarán sus equipos, jugadores, filas de la tabla y partidos del bracket. Esta acción no se puede deshacer.`,
+      `¿Eliminar "${tournament.name}"? También se eliminarán sus equipos, jugadores, filas de la tabla y todos sus brackets y partidos. Esta acción no se puede deshacer.`,
       { title: 'Eliminar torneo', confirmLabel: 'Sí, eliminar' }
     )
     if (!confirmed) return false
@@ -78,6 +81,7 @@ export default function Admin() {
     const operations = [
       supabase.from('standings').delete().eq('tournament_id', tournamentId),
       supabase.from('players').delete().eq('tournament_id', tournamentId),
+      supabase.from('tournament_brackets').delete().eq('tournament_id', tournamentId),
       supabase.from('bracket_matches').delete().eq('tournament_id', tournamentId),
       supabase.from('teams').delete().eq('tournament_id', tournamentId),
       supabase.from('tournaments').delete().eq('id', tournamentId),
@@ -103,7 +107,7 @@ export default function Admin() {
 
   const ctx = {
     tournaments, selectedId, setSelectedId,
-    teams, matches, standings, players,
+    teams, brackets, matches, standings, players,
     reloadTournaments: loadTournaments,
     reloadData: () => loadTournamentData(selectedId),
     deleteTournament,

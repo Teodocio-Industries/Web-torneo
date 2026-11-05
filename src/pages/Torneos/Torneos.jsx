@@ -14,6 +14,8 @@ export default function Torneos() {
   const [selectedId, setSelectedId] = useState(null)
   const [tab, setTab] = useState('bracket')
   const [teams, setTeams] = useState([])
+  const [brackets, setBrackets] = useState([])
+  const [selectedBracketId, setSelectedBracketId] = useState(null)
   const [matches, setMatches] = useState([])
   const [standings, setStandings] = useState([])
   const [players, setPlayers] = useState([])
@@ -28,13 +30,19 @@ export default function Torneos() {
 
   const loadDetail = useCallback(async (tid) => {
     if (!tid) return
-    const [teamsRes, matchesRes, standingsRes, playersRes] = await Promise.all([
+    const [teamsRes, bracketsRes, matchesRes, standingsRes, playersRes] = await Promise.all([
       supabase.from('teams').select('*').eq('tournament_id', tid).order('name'),
+      supabase.from('tournament_brackets').select('*').eq('tournament_id', tid).order('sort_order'),
       supabase.from('bracket_matches').select('*').eq('tournament_id', tid).order('round_number'),
       supabase.from('standings').select('*, teams(name,flag_url)').eq('tournament_id', tid).order('group_name').order('pts', { ascending: false }),
       supabase.from('players').select('*, teams(name,flag_url)').eq('tournament_id', tid).order('full_name'),
     ])
     setTeams(teamsRes.data || [])
+    const availableBrackets = bracketsRes.data || []
+    setBrackets(availableBrackets)
+    setSelectedBracketId((previous) => availableBrackets.some((bracket) => bracket.id === previous)
+      ? previous
+      : availableBrackets[0]?.id || null)
     setMatches(matchesRes.data || [])
     setStandings(standingsRes.data || [])
     setPlayers(playersRes.data || [])
@@ -45,13 +53,15 @@ export default function Torneos() {
 
   // Tiempo real: cualquier cambio hecho por el admin se refleja para todos al instante.
   useRealtimeRefresh(
-    ['teams', 'bracket_matches', 'standings', 'players'],
+    ['teams', 'tournament_brackets', 'bracket_matches', 'standings', 'players'],
     () => loadDetail(selectedId),
     [selectedId, loadDetail]
   )
   useRealtimeRefresh(['tournaments'], loadTournaments, [loadTournaments])
 
   const selected = tournaments.find((t) => t.id === selectedId)
+  const selectedBracket = brackets.find((bracket) => bracket.id === selectedBracketId) || brackets[0]
+  const selectedMatches = matches.filter((match) => match.bracket_id === selectedBracket?.id)
   const myTeamId = myPlayers.find((mp) => mp.tournament_id === selectedId)?.team_id || null
   const groups = [...new Set(standings.map((s) => s.group_name))]
 
@@ -63,7 +73,11 @@ export default function Torneos() {
         <section className="torneos-encabezado">
           <p className="eyebrow">Caribe Sports Events</p>
           <h1>Torneos</h1>
-          <p className="mini">Elige un torneo para ver su cuadro de cruces, tabla y estadísticas en vivo.</p>
+          <p className="mini">
+            {tab === 'bracket'
+              ? 'Elige un bracket para ver sus cruces y resultados en vivo.'
+              : 'Elige un torneo para ver su cuadro de cruces, tabla y estadísticas en vivo.'}
+          </p>
         </section>
 
         {tournaments.length === 0 ? (
@@ -76,14 +90,41 @@ export default function Torneos() {
                   key={t.id}
                   className={`tarjeta-torneo ${t.id === selectedId ? 'is-active' : ''}`}
                   onClick={() => setSelectedId(t.id)}
+                  aria-pressed={t.id === selectedId}
                 >
                   {t.image_url && <img src={t.image_url} alt="" className="tarjeta-torneo__img" />}
-                  <span className="tarjeta-torneo__estado">{t.is_active ? 'ACTIVO' : 'INACTIVO'}</span>
+                  <span className="tarjeta-torneo__estado">
+                    {t.is_active ? 'ACTIVO' : 'INACTIVO'}
+                  </span>
                   <h3>{t.name}</h3>
                   {t.description && <p>{t.description}</p>}
                 </button>
               ))}
             </div>
+
+            {tab === 'bracket' && brackets.length > 0 && (
+              <div className="lista-brackets">
+                <div className="lista-brackets__heading">
+                  <h2>Cuadros de {selected?.name}</h2>
+                  <span>{brackets.length} {brackets.length === 1 ? 'bracket' : 'brackets'}</span>
+                </div>
+                <div className="lista-brackets__buttons">
+                  {brackets.map((bracket, index) => (
+                    <button
+                      type="button"
+                      key={bracket.id}
+                      className={`boton-bracket ${selectedBracket?.id === bracket.id ? 'is-active' : ''}`}
+                      onClick={() => setSelectedBracketId(bracket.id)}
+                      aria-pressed={selectedBracket?.id === bracket.id}
+                    >
+                      <span>Bracket {index + 1}</span>
+                      <strong>{bracket.name}</strong>
+                      <small>{bracket.team_count || bracket.team_ids?.length || 0} equipos</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="torneo-tabs">
               <button className={tab === 'bracket' ? 'is-active' : ''} onClick={() => setTab('bracket')}>Cuadro de cruces</button>
@@ -95,7 +136,13 @@ export default function Torneos() {
       </div>
 
       {tournaments.length > 0 && tab === 'bracket' && (
-        <Bracket matches={matches} teams={teams} tournamentName={selected?.name} myTeamId={myTeamId} />
+        <Bracket
+          matches={selectedMatches}
+          teams={teams}
+          tournamentName={selected?.name}
+          bracketName={`${selectedBracket?.name || 'Bracket'} · ${selected?.name || ''}`}
+          myTeamId={myTeamId}
+        />
       )}
 
       {tournaments.length > 0 && tab === 'tabla' && (
