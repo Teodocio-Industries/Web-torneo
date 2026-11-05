@@ -5,14 +5,17 @@ import { useRealtimeRefresh } from '../../lib/useRealtimeRefresh'
 import TeamBadge from '../../components/TeamBadge/TeamBadge'
 import PlayerCharts from '../../components/PlayerCharts/PlayerCharts'
 import { decimal, estadisticasJugador, partidosJugadosPorEquipo, porcentaje } from '../../lib/playerStats'
+import { useAuth } from '../../context/AuthContext'
 import './PlayerProfile.css'
 
 export default function PlayerProfile() {
   const { id } = useParams()
+  const { profile, isAdmin } = useAuth()
   const [player, setPlayer] = useState(null)
   const [allPlayers, setAllPlayers] = useState([])
   const [matches, setMatches] = useState([])
   const [loading, setLoading] = useState(true)
+  const [accessDenied, setAccessDenied] = useState(false)
 
   const load = useCallback(async () => {
     const { data: p } = await supabase
@@ -20,6 +23,13 @@ export default function PlayerProfile() {
       .select('*, teams(id,name,flag_url), tournaments(id,name)')
       .eq('id', id)
       .single()
+    const restrictedTeamId = profile?.team_id
+    if (p && restrictedTeamId && !isAdmin && p.team_id !== restrictedTeamId) {
+      setAccessDenied(true)
+      setLoading(false)
+      return
+    }
+    setAccessDenied(false)
     setPlayer(p || null)
     if (p) {
       const [{ data: others }, { data: tournamentMatches }] = await Promise.all([
@@ -30,12 +40,15 @@ export default function PlayerProfile() {
       setMatches(tournamentMatches || [])
     }
     setLoading(false)
-  }, [id])
+  }, [id, profile?.team_id, isAdmin])
 
   useEffect(() => { load() }, [load])
   useRealtimeRefresh(['players', 'bracket_matches'], load, [load])
 
   if (loading) return <div className="loading-screen">Cargando jugador…</div>
+  if (accessDenied) {
+    return <main className="page"><div className="card empty"><h2>Ficha no disponible</h2><p>Tu cuenta está vinculada a un equipo, por lo que solo puedes consultar las estadísticas detalladas de sus jugadores.</p><Link className="btn small" to="/jugadores">Volver a jugadores</Link></div></main>
+  }
   if (!player) return <main className="page"><div className="empty">No se encontró este jugador.</div></main>
 
   const stats = estadisticasJugador(player, partidosJugadosPorEquipo(player.team_id, matches))

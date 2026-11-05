@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
 
   const loadProfile = useCallback(async (userId) => {
     // Solo las columnas que la app usa (minimización de datos).
-    const { data, error } = await supabase.from('profiles').select('id, email, full_name, role, avatar_url').eq('id', userId).single()
+    const { data, error } = await supabase.from('profiles').select('id, email, full_name, role, avatar_url, team_id').eq('id', userId).single()
     if (error) {
       console.error(error)
       return null
