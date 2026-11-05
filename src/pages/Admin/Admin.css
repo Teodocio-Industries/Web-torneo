@@ -263,6 +263,10 @@
   margin-bottom: 6px;
 }
 .player-draft-row input { width: 100%; }
+.admin-cuentas__editor { border-color: rgba(255, 107, 33, .55); }
+.admin-cuentas__lista { margin-top: 20px; }
+.admin-cuentas__tabla { overflow-x: auto; }
+.admin-cuentas__tabla table { min-width: 760px; }
 @media (max-width: 900px) {
   .player-draft-row { grid-template-columns: repeat(2, 1fr); }
 }
