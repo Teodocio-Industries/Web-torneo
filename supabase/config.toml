@@ -1,0 +1,5 @@
+# Esta función verifica la sesión y el rol de administrador dentro de su código.
+# Se evita que la puerta de enlace la rechace antes de que pueda devolver un
+# mensaje claro al panel administrativo.
+[functions.admin-manage-user]
+verify_jwt = false
