@@ -24,6 +24,20 @@ async function detalleErrorFuncion(error) {
   return error.message || 'No se pudo completar la solicitud'
 }
 
+async function invocarFuncionAdministrativa(nombre, body) {
+  // Se envía el token de forma explícita. Así la función no depende de que el
+  // navegador lo agregue automáticamente y Supabase puede validar al admin.
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session?.access_token) {
+    throw new Error('Tu sesión venció. Cierra sesión, vuelve a entrar como administrador e inténtalo de nuevo.')
+  }
+
+  return supabase.functions.invoke(nombre, {
+    body,
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  })
+}
+
 export default function AdminCuentas() {
   const toast = useToast()
   const confirm = useConfirm()
@@ -81,8 +95,8 @@ export default function AdminCuentas() {
 
     setBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('admin-create-user', {
-        body: { email: email.trim(), password, full_name: fullName.trim(), role },
+      const { data, error } = await invocarFuncionAdministrativa('admin-create-user', {
+        email: email.trim(), password, full_name: fullName.trim(), role,
       })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
@@ -120,11 +134,9 @@ export default function AdminCuentas() {
     if (editing.password && editing.password.length < MIN_CLAVE) return toast(`La nueva contraseña debe tener al menos ${MIN_CLAVE} caracteres`, 'err')
     setBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('admin-manage-user', {
-        body: {
-          action: 'update', user_id: editing.id, full_name: editing.fullName.trim(), email: editing.email.trim(),
-          password: editing.password || undefined, role: editing.role, team_id: editing.teamId || null,
-        },
+      const { data, error } = await invocarFuncionAdministrativa('admin-manage-user', {
+        action: 'update', user_id: editing.id, full_name: editing.fullName.trim(), email: editing.email.trim(),
+        password: editing.password || undefined, role: editing.role, team_id: editing.teamId || null,
       })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
@@ -147,7 +159,7 @@ export default function AdminCuentas() {
     if (!ok) return
     setBusy(true)
     try {
-      const { data, error } = await supabase.functions.invoke('admin-manage-user', { body: { action: 'delete', user_id: account.id } })
+      const { data, error } = await invocarFuncionAdministrativa('admin-manage-user', { action: 'delete', user_id: account.id })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
       toast('Cuenta eliminada', 'ok')
